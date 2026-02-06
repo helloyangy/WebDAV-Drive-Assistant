@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "WebDAV Drive Assistant"
+  },
+  "extensionShortName": {
+    "message": "WebDAV Assistant"
+  },
+  "extensionDescription": {
+    "message": "WebDAV file manager with upload progress, preview, cache/sync, and AI upload backup."
+  },
+  "extensionActionTitle": {
+    "message": "WebDAV Drive Assistant"
+  }
+}
+

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebDAV</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="refreshBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.refresh,aria-label:ui.refresh" type="button">
+            <img class="icon-img" src="images/refresh.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.refresh"></span>
+          </button>
+          <button id="mkdirBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.newFolder,aria-label:ui.newFolder" type="button">
+            <img class="icon-img" src="images/folder-plus.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.new"></span>
+          </button>
+          <label class="icon-button ghost icon-with-text file-button" data-i18n-attr="title:ui.upload,aria-label:ui.upload">
+            <img class="icon-img" src="images/upload.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.upload"></span>
+            <input id="uploadInput" type="file" />
+          </label>
+          <button id="downloadBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.download,aria-label:ui.download" type="button">
+            <img class="icon-img" src="images/download.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.download"></span>
+          </button>
+          <button id="deleteBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.delete,aria-label:ui.delete" type="button">
+            <img class="icon-img" src="images/trash.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.delete"></span>
+          </button>
+        </div>
+        <div class="topbar-right">
+          <div class="search">
+            <img class="search-icon icon-img" src="images/search.svg" alt="" aria-hidden="true" />
+            <input id="searchInput" type="text" data-i18n-placeholder="ui.searchPlaceholder" />
+          </div>
+          <div id="connStatus" class="conn-status disconnected" data-i18n-attr="title:common.disconnected">
+            <span class="conn-dot" aria-hidden="true"></span>
+          </div>
+          <button id="aiBackupBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.aiBackup,aria-label:ui.aiBackup" type="button">
+            <img class="icon-img" src="images/upload.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.aiBackup"></span>
+          </button>
+          <button id="settingsBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.settings,aria-label:ui.settings" type="button">
+            <img class="icon-img" src="images/settings.svg" alt="" aria-hidden="true" />
+            <span class="label" data-i18n="ui.settings"></span>
+          </button>
+        </div>
+      </header>
+      <div class="content">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <button id="addAccountBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:ui.addAccount,aria-label:ui.addAccount" type="button">
+              <img class="icon-img" src="images/plus.svg" alt="" aria-hidden="true" />
+              <span class="label" data-i18n="ui.new"></span>
+            </button>
+          </div>
+          <ul id="accountList" class="sidebar-list"></ul>
+          <div class="sidebar-footer">
+            <button id="helpBtn" class="icon-button ghost icon-only" data-i18n-attr="title:ui.help,aria-label:ui.help" type="button">
+              <img class="icon-img" src="images/info.svg" alt="" aria-hidden="true" />
+            </button>
+          </div>
+        </aside>
+        <main class="main">
+          <div class="main-header">
+            <div class="file-toolbar">
+              <div class="pathbar" data-i18n-attr="title:common.path">
+                <button id="upBtn" class="icon-button ghost icon-only" data-i18n-attr="title:ui.goUp,aria-label:ui.goUp" type="button">
+                  <img class="icon-img" src="images/arrow-left.svg" alt="" aria-hidden="true" />
+                </button>
+                <button id="homeBtn" class="icon-button ghost icon-only" data-i18n-attr="title:ui.goHome,aria-label:ui.goHome" type="button">
+                  <img class="icon-img" src="images/home.svg" alt="" aria-hidden="true" />
+                </button>
+                <div id="pathChips" class="path-chips" data-i18n-attr="aria-label:common.path"></div>
+                <input id="pathInput" type="hidden" value="/" />
+              </div>
+              <div class="file-toolbar-right">
+                <div id="topHint" class="top-hint" aria-live="polite"></div>
+                <button id="uploadStatusBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:upload.details,aria-label:upload.details" type="button" hidden>
+                  <img class="icon-img" src="images/upload.svg" alt="" aria-hidden="true" />
+                  <span class="label" data-i18n="upload.button"></span>
+                </button>
+                <button id="viewToggleBtn" class="icon-button ghost icon-only" data-i18n-attr="aria-label:ui.layout" type="button">
+                  <img id="viewToggleIcon" class="icon-img" src="images/view-list.svg" alt="" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="list">
+            <div id="emptyState" class="empty-state" hidden>
+              <img class="empty-state-img" src="images/empty-drive-alt.svg" alt="" aria-hidden="true" />
+              <div id="emptyStateText" class="empty-state-text"></div>
+            </div>
+            <ul id="fileList" data-i18n-attr="aria-label:ui.fileList"></ul>
+          </div>
+        </main>
+      </div>
+    </div>
+    <div id="downloadErrorModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title" data-i18n="ui.downloadError.title"></div>
+          <button id="closeDownloadErrorBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <div id="downloadErrorText" class="download-error-text"></div>
+        <div class="button-row">
+          <button id="downloadErrorOkBtn" class="primary" type="button" data-i18n="ui.downloadError.ok"></button>
+        </div>
+      </div>
+    </div>
+    <div id="previewModal" class="modal">
+      <div class="modal-card preview-card">
+        <div class="modal-header">
+          <div id="previewTitle" class="modal-title" data-i18n="ui.preview"></div>
+          <button id="closePreviewBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <div id="previewContent" class="preview-content"></div>
+      </div>
+    </div>
+    <div id="uploadModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="uploadModalTitle" class="modal-title" data-i18n="upload.title"></div>
+          <button id="closeUploadModalBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <div class="upload-detail">
+          <div id="uploadFileName" class="upload-file-name"></div>
+          <div class="upload-progress-track" aria-hidden="true">
+            <div id="uploadModalProgressBar" class="upload-progress-bar"></div>
+          </div>
+          <div id="uploadModalProgressText" class="upload-progress-text"></div>
+          <div class="upload-stats">
+            <div class="upload-stat">
+              <div class="upload-stat-key" data-i18n="upload.total"></div>
+              <div id="uploadTotalValue" class="upload-stat-value"></div>
+            </div>
+            <div class="upload-stat">
+              <div class="upload-stat-key" data-i18n="upload.uploaded"></div>
+              <div id="uploadLoadedValue" class="upload-stat-value"></div>
+            </div>
+            <div class="upload-stat">
+              <div class="upload-stat-key" data-i18n="upload.speed"></div>
+              <div id="uploadSpeedValue" class="upload-stat-value"></div>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="abortUploadBtn" type="button" data-i18n="upload.abort"></button>
+            <button id="closeUploadBtn" class="primary" type="button" data-i18n="common.close"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="aiBackupModal" class="modal ai-backup-modal">
+      <div class="modal-card ai-backup-card">
+        <div class="modal-header">
+          <div id="aiBackupTitle" class="modal-title" data-i18n="aiBackup.title"></div>
+          <button id="closeAiBackupBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <form id="aiBackupForm" class="settings-form ai-backup-form">
+          <div class="ai-backup-section">
+            <div class="ai-backup-label" data-i18n="aiBackup.mode"></div>
+            <div class="ai-backup-mode">
+              <label class="ai-backup-mode-option">
+                <input type="radio" name="aiBackupMode" value="off" />
+                <span data-i18n="aiBackup.mode.off"></span>
+              </label>
+              <label class="ai-backup-mode-option">
+                <input type="radio" name="aiBackupMode" value="ask" />
+                <span data-i18n="aiBackup.mode.ask"></span>
+              </label>
+              <label class="ai-backup-mode-option">
+                <input type="radio" name="aiBackupMode" value="auto" />
+                <span data-i18n="aiBackup.mode.auto"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="ai-backup-section">
+            <label class="ai-backup-field">
+              <span class="ai-backup-label" data-i18n="aiBackup.blockedTypes"></span>
+              <input id="aiBackupBlockedTypes" type="text" placeholder="zip, exe, dmg" />
+            </label>
+            <div class="ai-backup-help" data-i18n="aiBackup.blockedTypesHelp"></div>
+          </div>
+
+          <div class="ai-backup-section">
+            <div class="ai-backup-label" data-i18n="aiBackup.blockedSites"></div>
+            <div class="ai-backup-site-grid">
+              <label class="ai-backup-site">
+                <input id="blockSiteChatgpt" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">C</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.chatgpt"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteGemini" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">G</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.gemini"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteGrok" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">X</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.grok"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteClaude" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">C</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.claude"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteDoubao" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">豆</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.doubao"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteYuanbao" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">元</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.yuanbao"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteQianwen" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">千</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.qianwen"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="aiBackupCancelBtn" type="button" data-i18n="common.cancel"></button>
+            <button id="aiBackupSaveBtn" class="primary" type="submit" data-i18n="common.save"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="dialogModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="dialogTitle" class="modal-title" data-i18n="dialog.confirm"></div>
+          <button id="closeDialogBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <div id="dialogMessage" class="download-error-text"></div>
+        <form id="dialogForm" class="settings-form">
+          <label id="dialogInputLabel">
+            <span id="dialogInputLabelText" data-i18n="dialog.content"></span>
+            <input id="dialogInput" type="text" />
+          </label>
+          <div class="button-row">
+            <button id="dialogCancelBtn" type="button" data-i18n="common.cancel"></button>
+            <button id="dialogOkBtn" class="primary" type="submit" data-i18n="common.ok"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="contextMenu" class="context-menu" role="menu" aria-hidden="true">
+      <button id="contextMenuEnter" class="context-menu-item" type="button" role="menuitem" data-i18n="ui.enter"></button>
+      <button id="contextMenuPreview" class="context-menu-item" type="button" role="menuitem" data-i18n="ui.preview"></button>
+      <button id="contextMenuDownload" class="context-menu-item" type="button" role="menuitem" data-i18n="ui.download"></button>
+      <button id="contextMenuCopyPath" class="context-menu-item" type="button" role="menuitem" data-i18n="ui.copyPath"></button>
+      <button id="contextMenuRename" class="context-menu-item" type="button" role="menuitem" data-i18n="ui.rename"></button>
+      <div class="context-menu-separator" aria-hidden="true"></div>
+      <button id="contextMenuDelete" class="context-menu-item danger" type="button" role="menuitem" data-i18n="ui.delete"></button>
+    </div>
+    <div id="accountModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="modalTitle" class="modal-title" data-i18n="ui.accountModal.add"></div>
+          <button id="closeModalBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <form id="settingsForm" class="settings-form">
+          <label>
+            <span data-i18n="ui.name"></span>
+            <input id="nameInput" type="text" data-i18n-placeholder="ui.namePlaceholder" />
+          </label>
+          <label>
+            <span data-i18n="ui.endpoint"></span>
+            <input id="endpointInput" type="url" required />
+          </label>
+          <label>
+            <span data-i18n="ui.username"></span>
+            <input id="usernameInput" type="text" autocomplete="username" />
+          </label>
+          <label>
+            <span data-i18n="ui.password"></span>
+            <input id="passwordInput" type="password" autocomplete="current-password" />
+          </label>
+          <label>
+            <span data-i18n="ui.rootPath"></span>
+            <input id="rootInput" type="text" value="/" />
+          </label>
+          <details class="advanced">
+            <summary data-i18n="ui.advanced"></summary>
+            <label>
+              <span data-i18n="ui.concurrency"></span>
+              <input id="concurrencyInput" type="number" min="1" max="6" value="2" />
+            </label>
+            <label>
+              <span data-i18n="ui.cacheLimit"></span>
+              <input id="cacheLimitInput" type="number" min="50" max="2048" value="200" />
+            </label>
+            <label class="checkbox">
+              <span data-i18n="ui.autoSync"></span>
+              <input id="autoSyncInput" type="checkbox" />
+            </label>
+            <label>
+              <span data-i18n="ui.syncInterval"></span>
+              <input id="syncIntervalInput" type="number" min="1" max="720" value="30" />
+            </label>
+          </details>
+          <div class="button-row">
+            <button id="saveBtn" type="submit" data-i18n="ui.saveSettings"></button>
+            <button id="connectBtn" type="button" class="primary" data-i18n="ui.connect"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="settingsModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title" data-i18n="ui.settings"></div>
+          <button id="closeSettingsBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <form id="globalSettingsForm" class="settings-form">
+          <div class="settings-row">
+            <div class="settings-label" data-i18n="ui.language"></div>
+            <div class="segmented" role="group" aria-label="Language">
+              <button id="langZhBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="lang.zh"></button>
+              <button id="langEnBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="lang.en"></button>
+            </div>
+            <input id="languageInput" type="hidden" value="zh-CN" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-label" data-i18n="ui.openMode"></div>
+            <div class="segmented" role="group" data-i18n-attr="aria-label:ui.openMode">
+              <button id="openModePopupBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="ui.openMode.popup"></button>
+              <button id="openModeTabBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="ui.openMode.tab"></button>
+            </div>
+            <input id="openModeInput" type="hidden" value="tab" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-label" data-i18n="ui.sortDefault"></div>
+            <div class="settings-controls">
+              <select id="sortBySelect" data-i18n-attr="aria-label:ui.sortBy">
+                <option value="name" data-i18n="ui.sortBy.name"></option>
+                <option value="modified" data-i18n="ui.sortBy.modified"></option>
+                <option value="size" data-i18n="ui.sortBy.size"></option>
+              </select>
+              <div class="segmented" role="group" data-i18n-attr="aria-label:ui.sortOrder">
+                <button id="sortAscBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="ui.sort.asc"></button>
+                <button id="sortDescBtn" class="segmented-item" type="button" aria-pressed="false" data-i18n="ui.sort.desc"></button>
+              </div>
+              <input id="sortOrderInput" type="hidden" value="asc" />
+            </div>
+          </div>
+          <label class="checkbox">
+            <span data-i18n="ui.hideDotfiles"></span>
+            <input id="hideDotfilesInput" type="checkbox" />
+          </label>
+          <label>
+            <span data-i18n="ui.concurrency"></span>
+            <input id="globalConcurrencyInput" type="number" min="1" max="6" value="2" />
+          </label>
+          <label>
+            <span data-i18n="ui.cacheLimit"></span>
+            <input id="globalCacheLimitInput" type="number" min="50" max="2048" value="200" />
+          </label>
+          <label class="checkbox">
+            <span data-i18n="ui.autoSync"></span>
+            <input id="globalAutoSyncInput" type="checkbox" />
+          </label>
+          <label>
+            <span data-i18n="ui.syncInterval"></span>
+            <input id="globalSyncIntervalInput" type="number" min="1" max="720" value="30" />
+          </label>
+          <div class="button-row">
+            <button id="clearCacheBtn" type="button" data-i18n="ui.clearCache"></button>
+            <button id="saveGlobalSettingsBtn" class="primary" type="submit" data-i18n="common.save"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="helpModal" class="modal">
+      <div class="modal-card preview-card">
+        <div class="modal-header">
+          <div id="helpTitle" class="modal-title" data-i18n="ui.help"></div>
+          <button id="closeHelpBtn" class="icon-button ghost" type="button">✕</button>
+        </div>
+        <div class="help-content" data-i18n-show-lang="zh-CN">
+          <div class="help-section">
+            <div class="help-heading">快速开始</div>
+            <div class="help-text">先点击左侧“新增”添加账号。然后点击“连接”测试连接并进入根目录。进入后可双击目录继续浏览，双击文件进行预览（部分类型支持）。</div>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">常用操作</div>
+            <ul class="help-list">
+              <li>上传：顶部“上传”选择文件后自动上传到当前路径。</li>
+              <li>下载：选中文件后点“下载”，或右键选择“下载”。</li>
+              <li>删除：选中后点“删除”，或右键“删除”。</li>
+              <li>新建文件夹：顶部“新建”。</li>
+              <li>重命名：右键文件或目录，选择“重命名”。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">浏览与搜索</div>
+            <ul class="help-list">
+              <li>路径：点击路径面包屑快速跳转。左上角提供返回上级与主页按钮。</li>
+              <li>搜索：右上角搜索框按名称过滤当前目录。</li>
+              <li>排列：右上角图标切换列表/网格显示。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">键盘操作</div>
+            <ul class="help-list">
+              <li>文件列表：方向键上下移动选择。按 Enter 打开，目录会进入，文件会预览。按空格只选中不打开。</li>
+              <li>弹窗：按 Esc 关闭。弹窗打开时会自动聚焦到可操作控件。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">设置说明</div>
+            <ul class="help-list">
+              <li>并发数：影响上传/同步等并行数量，过大可能触发服务端限制。</li>
+              <li>缓存上限：用于加速重复下载/预览的本地缓存。</li>
+              <li>自动同步：周期性刷新目录与缓存（如已开启）。</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">常见问题</div>
+            <ul class="help-list">
+              <li>401 或 403：账号或权限问题。请检查用户名、密码与服务器权限。</li>
+              <li>404：路径不存在。检查根路径与当前目录。</li>
+              <li>网络错误：可能是服务器不可达或地址不正确。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="help-content" data-i18n-show-lang="en" hidden>
+          <div class="help-section">
+            <div class="help-heading">Quick start</div>
+            <div class="help-text">
+              Click “New” on the left to add an account. Then click “Connect” to test and enter the root folder. Double-click a
+              folder to navigate, and double-click a file to preview (some types supported).
+            </div>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">Common actions</div>
+            <ul class="help-list">
+              <li>Upload: choose a file from “Upload” to upload to the current path.</li>
+              <li>Download: select a file and click “Download”, or use the right-click menu.</li>
+              <li>Delete: select an item and click “Delete”, or use the right-click menu.</li>
+              <li>New folder: click “New folder”.</li>
+              <li>Rename: right-click an item and choose “Rename”.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">Browse & search</div>
+            <ul class="help-list">
+              <li>Path: click breadcrumbs to jump quickly. Use Up/Home buttons on the toolbar.</li>
+              <li>Search: the search box filters items by name in the current folder.</li>
+              <li>Layout: toggle between list and grid view.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">Keyboard</div>
+            <ul class="help-list">
+              <li>File list: use Arrow keys to move. Enter opens (folder enters, file previews). Space selects only.</li>
+              <li>Modals: press Esc to close. Focus will move to interactive controls automatically.</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">Settings</div>
+            <ul class="help-list">
+              <li>Concurrency: affects parallel operations; too high may hit server limits.</li>
+              <li>Cache limit: local cache for faster repeated downloads/previews.</li>
+              <li>Auto sync: periodically refresh list and cache (if enabled).</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <div class="help-heading">Troubleshooting</div>
+            <ul class="help-list">
+              <li>401/403: account or permission issue. Check username/password and server permissions.</li>
+              <li>404: path not found. Check root path and current directory.</li>
+              <li>Network error: server unreachable or URL incorrect.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

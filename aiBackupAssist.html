@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI 备份</title>
+    <link rel="stylesheet" href="aiBackupAssist.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="header">
+        <div class="title">AI 备份上传</div>
+        <button id="closeBtn" class="ghost" type="button">关闭</button>
+      </header>
+      <div class="card">
+        <div class="row">
+          <div class="label">站点</div>
+          <div id="siteText" class="value"></div>
+        </div>
+        <div class="row">
+          <div class="label">文件名</div>
+          <div id="nameText" class="value"></div>
+        </div>
+        <div class="row">
+          <div class="label">选择文件</div>
+          <input id="fileInput" type="file" />
+        </div>
+        <div class="progress">
+          <div class="track" aria-hidden="true">
+            <div id="bar" class="bar"></div>
+          </div>
+          <div id="progressText" class="progress-text"></div>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="k">总大小</div>
+            <div id="totalText" class="v"></div>
+          </div>
+          <div class="stat">
+            <div class="k">已上传</div>
+            <div id="loadedText" class="v"></div>
+          </div>
+          <div class="stat">
+            <div class="k">网速</div>
+            <div id="speedText" class="v"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="abortBtn" class="ghost" type="button" disabled>终止上传</button>
+          <button id="uploadBtn" class="primary" type="button" disabled>开始上传</button>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+      <div class="hint">
+        说明：由于浏览器限制，部分 AI 网站无法自动读取文件内容。此窗口用于手动选择同一个文件并上传到网盘备份目录。
+      </div>
+    </div>
+    <script type="module" src="aiBackupAssist.js"></script>
+  </body>
+</html>
+

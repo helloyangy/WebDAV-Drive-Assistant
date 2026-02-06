@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="options.pageTitle">WebDAV 设置</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1 data-i18n="options.pageTitle">WebDAV 设置</h1>
+      <form id="settingsForm">
+        <label>
+          <span data-i18n="ui.language"></span>
+          <select id="languageSelect">
+            <option value="zh-CN" data-i18n="lang.zh"></option>
+            <option value="en" data-i18n="lang.en"></option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="ui.endpoint"></span>
+          <input id="endpointInput" type="url" data-i18n-placeholder="ui.endpointPlaceholder" required />
+        </label>
+        <label>
+          <span data-i18n="ui.username"></span>
+          <input id="usernameInput" type="text" autocomplete="username" />
+        </label>
+        <label>
+          <span data-i18n="ui.password"></span>
+          <input id="passwordInput" type="password" autocomplete="current-password" />
+        </label>
+        <label>
+          <span data-i18n="ui.rootPath"></span>
+          <input id="rootInput" type="text" value="/" />
+        </label>
+        <label>
+          <span data-i18n="ui.concurrency"></span>
+          <input id="concurrencyInput" type="number" min="1" max="6" value="2" />
+        </label>
+        <label>
+          <span data-i18n="ui.cacheLimit"></span>
+          <input id="cacheLimitInput" type="number" min="50" max="2048" value="200" />
+        </label>
+        <label>
+          <span data-i18n="ui.autoSync"></span>
+          <input id="autoSyncInput" type="checkbox" />
+        </label>
+        <label>
+          <span data-i18n="ui.syncInterval"></span>
+          <input id="syncIntervalInput" type="number" min="1" max="720" value="30" />
+        </label>
+        <button type="submit" class="primary" data-i18n="common.save"></button>
+      </form>
+      <div id="savedHint" class="hint"></div>
+    </div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

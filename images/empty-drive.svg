@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+  <g fill="none" fill-rule="evenodd">
+    <rect x="0" y="0" width="240" height="180" fill="none"/>
+    <g opacity="0.85">
+      <path d="M62 96h116c6.6 0 12 5.4 12 12v34c0 6.6-5.4 12-12 12H62c-6.6 0-12-5.4-12-12v-34c0-6.6 5.4-12 12-12z" fill="#D8DEE6"/>
+      <path d="M56 108h128c4.4 0 8 3.6 8 8v20c0 4.4-3.6 8-8 8H56c-4.4 0-8-3.6-8-8v-20c0-4.4 3.6-8 8-8z" fill="#EEF2F7"/>
+      <path d="M90 48h60l16 18v56H74V64l16-16z" fill="#E6EBF2"/>
+      <path d="M90 48h60l16 18H74l16-18z" fill="#D8DEE6"/>
+      <path d="M92 76h56" stroke="#C7CFDA" stroke-width="6" stroke-linecap="round"/>
+      <path d="M92 96h44" stroke="#C7CFDA" stroke-width="6" stroke-linecap="round"/>
+      <g transform="translate(150 54)">
+        <circle cx="30" cy="22" r="22" fill="#E6EBF2"/>
+        <path d="M20 22h20" stroke="#C7CFDA" stroke-width="6" stroke-linecap="round"/>
+        <path d="M18 22c0-7 5.8-12.6 13-12.6S44 15 44 22" stroke="#C7CFDA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.0"/>
+        <circle cx="24" cy="22" r="2.8" fill="#C7CFDA"/>
+        <circle cx="30" cy="22" r="2.8" fill="#C7CFDA"/>
+        <circle cx="36" cy="22" r="2.8" fill="#C7CFDA"/>
+      </g>
+    </g>
+  </g>
+</svg>
+

@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "WebDAV 云盘助手"
+  },
+  "extensionShortName": {
+    "message": "WebDAV 助手"
+  },
+  "extensionDescription": {
+    "message": "WebDAV 文件管理器：上传进度/预览/缓存/同步 + AI 网站上传备份。"
+  },
+  "extensionActionTitle": {
+    "message": "WebDAV 云盘助手"
+  }
+}
+
