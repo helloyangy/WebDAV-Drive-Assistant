@@ -1,8 +1,12 @@
 # WebDAV 云盘助手
 
 <p align="center">
-  <a href="#中文"><kbd>🇨🇳 中文</kbd></a>
-  <a href="#english"><kbd>🇺🇸 English</kbd></a>
+  <a href="#中文">
+    <img src="https://img.shields.io/badge/Language-中文-red?style=for-the-badge">
+  </a>
+  <a href="#english">
+    <img src="https://img.shields.io/badge/Language-English-blue?style=for-the-badge">
+  </a>
 </p>
 
 <p align="center">
