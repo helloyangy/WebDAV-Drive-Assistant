@@ -2,10 +2,11 @@
 
 <p align="center">
   <a href="#中文">
-    <img src="https://img.shields.io/badge/Language-中文-red?style=for-the-badge">
+    <img src="https://img.shields.io/badge/🇨🇳-中文-e60023?style=for-the-badge">
   </a>
+  &nbsp;&nbsp;
   <a href="#english">
-    <img src="https://img.shields.io/badge/Language-English-blue?style=for-the-badge">
+    <img src="https://img.shields.io/badge/🇺🇸-English-1f6feb?style=for-the-badge">
   </a>
 </p>
 
