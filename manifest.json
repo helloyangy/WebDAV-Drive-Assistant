@@ -3,7 +3,7 @@
   "default_locale": "en",
   "name": "__MSG_extensionName__",
   "short_name": "__MSG_extensionShortName__",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "__MSG_extensionDescription__",
   "icons": {
     "16": "images/icon16.png",
@@ -50,13 +50,57 @@
         "https://doubao.com/*",
         "https://*.doubao.com/*",
         "https://www.doubao.com/*",
+        "https://chat.deepseek.com/*",
+        "https://*.deepseek.com/*",
+        "https://kimi.com/*",
+        "https://www.kimi.com/*",
+        "https://*.kimi.com/*",
         "https://yuanbao.tencent.com/*",
         "https://*.yuanbao.tencent.com/*",
         "https://qianwen.aliyun.com/*",
-        "https://tongyi.aliyun.com/*"
+        "https://tongyi.aliyun.com/*",
+        "https://qianwen.com/*",
+        "https://www.qianwen.com/*",
+        "https://*.qianwen.com/*",
+        "https://qwen.ai/*",
+        "https://www.qwen.ai/*",
+        "https://*.qwen.ai/*"
       ],
       "js": ["content/aiBackup.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/aiBackupMainHook.js"],
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*",
+        "https://claude.ai/*",
+        "https://*.claude.ai/*",
+        "https://x.ai/*",
+        "https://*.x.ai/*",
+        "https://x.com/*",
+        "https://doubao.com/*",
+        "https://*.doubao.com/*",
+        "https://www.doubao.com/*",
+        "https://chat.deepseek.com/*",
+        "https://*.deepseek.com/*",
+        "https://kimi.com/*",
+        "https://www.kimi.com/*",
+        "https://*.kimi.com/*",
+        "https://yuanbao.tencent.com/*",
+        "https://*.yuanbao.tencent.com/*",
+        "https://qianwen.aliyun.com/*",
+        "https://tongyi.aliyun.com/*",
+        "https://qianwen.com/*",
+        "https://www.qianwen.com/*",
+        "https://*.qianwen.com/*",
+        "https://qwen.ai/*",
+        "https://www.qwen.ai/*",
+        "https://*.qwen.ai/*"
+      ]
     }
   ]
 }

@@ -91,6 +91,11 @@ AI Backups
 - 备份仅在你启用 AI 备份功能后生效
 - 不会上传除你选择的文件之外的任何页面内容
 
+### 🧩 开发脚本
+
+- 同步 AI 站点列表到 manifest：`node scripts/sync-manifest-ai-sites.js`
+- 检查 manifest 与 i18n JSON 是否可解析：`node scripts/validate-i18n.js`
+
 ---
 
 ## English
@@ -117,6 +122,11 @@ AI Backups
 
 - Use the extension page to browse, search, upload, download, preview files
 - During upload, an “Upload” status button appears; click it for details and abort
+
+### 🧩 Dev scripts
+
+- Sync AI sites list into manifest: `node scripts/sync-manifest-ai-sites.js`
+- Validate JSON parse for manifest & locales: `node scripts/validate-i18n.js`
 
 #### 🤖 AI Upload Backup
 

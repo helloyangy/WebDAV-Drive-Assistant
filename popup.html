@@ -63,6 +63,14 @@
             <button id="helpBtn" class="icon-button ghost icon-only" data-i18n-attr="title:ui.help,aria-label:ui.help" type="button">
               <img class="icon-img" src="images/info.svg" alt="" aria-hidden="true" />
             </button>
+            <button
+              id="githubBtn"
+              class="icon-button ghost icon-only"
+              data-i18n-attr="title:ui.github,aria-label:ui.github"
+              type="button"
+            >
+              <img class="icon-img" src="images/github.svg" alt="" aria-hidden="true" />
+            </button>
           </div>
         </aside>
         <main class="main">
@@ -83,6 +91,15 @@
                 <button id="uploadStatusBtn" class="icon-button ghost icon-with-text" data-i18n-attr="title:upload.details,aria-label:upload.details" type="button" hidden>
                   <img class="icon-img" src="images/upload.svg" alt="" aria-hidden="true" />
                   <span class="label" data-i18n="upload.button"></span>
+                </button>
+                <button
+                  id="previewProgressBtn"
+                  class="icon-button ghost icon-only"
+                  data-i18n-attr="title:ui.previewProgress,aria-label:ui.previewProgress"
+                  type="button"
+                  hidden
+                >
+                  <img class="icon-img" src="images/progress.svg" alt="" aria-hidden="true" />
                 </button>
                 <button id="viewToggleBtn" class="icon-button ghost icon-only" data-i18n-attr="aria-label:ui.layout" type="button">
                   <img id="viewToggleIcon" class="icon-img" src="images/view-list.svg" alt="" aria-hidden="true" />
@@ -181,10 +198,16 @@
 
           <div class="ai-backup-section">
             <label class="ai-backup-field">
+              <span class="ai-backup-label" data-i18n="aiBackup.drive"></span>
+              <select id="aiBackupDriveSelect"></select>
+            </label>
+          </div>
+
+          <div class="ai-backup-section">
+            <label class="ai-backup-field">
               <span class="ai-backup-label" data-i18n="aiBackup.blockedTypes"></span>
               <input id="aiBackupBlockedTypes" type="text" placeholder="zip, exe, dmg" />
             </label>
-            <div class="ai-backup-help" data-i18n="aiBackup.blockedTypesHelp"></div>
           </div>
 
           <div class="ai-backup-section">
@@ -223,6 +246,20 @@
                 <span class="ai-backup-site-chip">
                   <span class="ai-backup-site-badge">豆</span>
                   <span class="ai-backup-site-name" data-i18n="aiSite.doubao"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteDeepseek" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">D</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.deepseek"></span>
+                </span>
+              </label>
+              <label class="ai-backup-site">
+                <input id="blockSiteKimi" type="checkbox" />
+                <span class="ai-backup-site-chip">
+                  <span class="ai-backup-site-badge">K</span>
+                  <span class="ai-backup-site-name" data-i18n="aiSite.kimi"></span>
                 </span>
               </label>
               <label class="ai-backup-site">
@@ -403,98 +440,41 @@
         </div>
         <div class="help-content" data-i18n-show-lang="zh-CN">
           <div class="help-section">
-            <div class="help-heading">快速开始</div>
-            <div class="help-text">先点击左侧“新增”添加账号。然后点击“连接”测试连接并进入根目录。进入后可双击目录继续浏览，双击文件进行预览（部分类型支持）。</div>
+            <div class="help-heading">版本更新（0.1.0 → 0.1.1）</div>
+            <div class="help-text">本次更新主要聚焦于认证兼容性与特殊字符路径的稳定性。</div>
           </div>
           <div class="help-section">
-            <div class="help-heading">常用操作</div>
+            <div class="help-heading">重点更新</div>
             <ul class="help-list">
-              <li>上传：顶部“上传”选择文件后自动上传到当前路径。</li>
-              <li>下载：选中文件后点“下载”，或右键选择“下载”。</li>
-              <li>删除：选中后点“删除”，或右键“删除”。</li>
-              <li>新建文件夹：顶部“新建”。</li>
-              <li>重命名：右键文件或目录，选择“重命名”。</li>
+              <li>新增 Digest 认证支持：当服务器要求 Digest 时，会在 401 后自动解析 challenge 并重试。</li>
+              <li>改进认证兼容：仍保留 Basic 认证路径，兼容更多 WebDAV 服务端配置。</li>
             </ul>
           </div>
           <div class="help-section">
-            <div class="help-heading">浏览与搜索</div>
+            <div class="help-heading">修复与优化</div>
             <ul class="help-list">
-              <li>路径：点击路径面包屑快速跳转。左上角提供返回上级与主页按钮。</li>
-              <li>搜索：右上角搜索框按名称过滤当前目录。</li>
-              <li>排列：右上角图标切换列表/网格显示。</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">键盘操作</div>
-            <ul class="help-list">
-              <li>文件列表：方向键上下移动选择。按 Enter 打开，目录会进入，文件会预览。按空格只选中不打开。</li>
-              <li>弹窗：按 Esc 关闭。弹窗打开时会自动聚焦到可操作控件。</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">设置说明</div>
-            <ul class="help-list">
-              <li>并发数：影响上传/同步等并行数量，过大可能触发服务端限制。</li>
-              <li>缓存上限：用于加速重复下载/预览的本地缓存。</li>
-              <li>自动同步：周期性刷新目录与缓存（如已开启）。</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">常见问题</div>
-            <ul class="help-list">
-              <li>401 或 403：账号或权限问题。请检查用户名、密码与服务器权限。</li>
-              <li>404：路径不存在。检查根路径与当前目录。</li>
-              <li>网络错误：可能是服务器不可达或地址不正确。</li>
+              <li>修复文件名/路径包含 # 或 ? 时的请求 URL 解析问题，避免访问/下载/预览被截断。</li>
+              <li>优化流式上传：在 Digest 场景下对上传做预探测，减少 401 导致的失败概率。</li>
             </ul>
           </div>
         </div>
         <div class="help-content" data-i18n-show-lang="en" hidden>
           <div class="help-section">
-            <div class="help-heading">Quick start</div>
-            <div class="help-text">
-              Click “New” on the left to add an account. Then click “Connect” to test and enter the root folder. Double-click a
-              folder to navigate, and double-click a file to preview (some types supported).
-            </div>
+            <div class="help-heading">What’s new (0.1.0 → 0.1.1)</div>
+            <div class="help-text">This update focuses on authentication compatibility and URL/path robustness.</div>
           </div>
           <div class="help-section">
-            <div class="help-heading">Common actions</div>
+            <div class="help-heading">Highlights</div>
             <ul class="help-list">
-              <li>Upload: choose a file from “Upload” to upload to the current path.</li>
-              <li>Download: select a file and click “Download”, or use the right-click menu.</li>
-              <li>Delete: select an item and click “Delete”, or use the right-click menu.</li>
-              <li>New folder: click “New folder”.</li>
-              <li>Rename: right-click an item and choose “Rename”.</li>
+              <li>Digest authentication support: automatically parses the Digest challenge on 401 and retries.</li>
+              <li>Better auth compatibility: keeps Basic auth path for broader server configurations.</li>
             </ul>
           </div>
           <div class="help-section">
-            <div class="help-heading">Browse & search</div>
+            <div class="help-heading">Fixes & improvements</div>
             <ul class="help-list">
-              <li>Path: click breadcrumbs to jump quickly. Use Up/Home buttons on the toolbar.</li>
-              <li>Search: the search box filters items by name in the current folder.</li>
-              <li>Layout: toggle between list and grid view.</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">Keyboard</div>
-            <ul class="help-list">
-              <li>File list: use Arrow keys to move. Enter opens (folder enters, file previews). Space selects only.</li>
-              <li>Modals: press Esc to close. Focus will move to interactive controls automatically.</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">Settings</div>
-            <ul class="help-list">
-              <li>Concurrency: affects parallel operations; too high may hit server limits.</li>
-              <li>Cache limit: local cache for faster repeated downloads/previews.</li>
-              <li>Auto sync: periodically refresh list and cache (if enabled).</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <div class="help-heading">Troubleshooting</div>
-            <ul class="help-list">
-              <li>401/403: account or permission issue. Check username/password and server permissions.</li>
-              <li>404: path not found. Check root path and current directory.</li>
-              <li>Network error: server unreachable or URL incorrect.</li>
+              <li>Fix URL parsing when file names/paths contain # or ? to avoid truncated requests.</li>
+              <li>Improve streaming uploads: performs a preflight in Digest mode to reduce 401-related failures.</li>
             </ul>
           </div>
         </div>

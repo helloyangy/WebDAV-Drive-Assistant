@@ -366,6 +366,14 @@ input[type="number"]:focus-visible {
   height: 18px;
 }
 
+.path-chips .path-separator {
+  width: 14px;
+  height: 14px;
+  opacity: 0.35;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .section-title {
   font-size: 12px;
   color: #555;
@@ -800,6 +808,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 8px;
   position: relative;
 }
 
@@ -1303,6 +1312,39 @@ select {
   min-height: 240px;
   max-height: calc(100vh - 220px);
   overflow: auto;
+  scrollbar-width: none;
+}
+
+.preview-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.preview-loading-desc {
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.7);
+  line-height: 1.6;
+}
+
+.preview-loading {
+  padding: 14px;
+}
+
+.upload-progress-track.indeterminate .upload-progress-bar {
+  width: 38%;
+  animation: preview-indeterminate 1200ms ease-in-out infinite;
+}
+
+@keyframes preview-indeterminate {
+  0% {
+    transform: translateX(-40%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
 }
 
 .help-content {

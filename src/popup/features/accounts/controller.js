@@ -106,6 +106,33 @@ export function createAccountsController(options) {
     }
   }
 
+  async function moveAccount(accountId, delta) {
+    const index = accounts.findIndex((item) => item.id === accountId);
+    if (index < 0) {
+      return { moved: false };
+    }
+    const nextIndex = index + (Number(delta) || 0);
+    if (nextIndex < 0 || nextIndex >= accounts.length) {
+      return { moved: false };
+    }
+    const next = accounts.slice();
+    const temp = next[index];
+    next[index] = next[nextIndex];
+    next[nextIndex] = temp;
+    accounts = next;
+    await storage.saveAccounts(accounts);
+    renderAccountList();
+    return { moved: true };
+  }
+
+  async function moveAccountUp(accountId) {
+    return await moveAccount(accountId, -1);
+  }
+
+  async function moveAccountDown(accountId) {
+    return await moveAccount(accountId, 1);
+  }
+
   async function deleteAccount(accountId) {
     const target = findAccountById(accountId);
     if (!target) {
@@ -163,6 +190,8 @@ export function createAccountsController(options) {
     getEditingAccountId,
     setActiveAccount,
     upsertAccount,
+    moveAccountUp,
+    moveAccountDown,
     deleteAccount,
     collectAccount,
     setFormFromAccount,

@@ -1,6 +1,15 @@
 export function createPathNavigation(options) {
   const { pathInput, pathChips, normalizePath, listPath } = options;
 
+  function createSeparator() {
+    const separator = document.createElement("img");
+    separator.className = "path-separator";
+    separator.src = "images/slash.svg";
+    separator.alt = "";
+    separator.setAttribute("aria-hidden", "true");
+    return separator;
+  }
+
   function updatePathChips() {
     if (!pathChips) {
       return;
@@ -29,6 +38,9 @@ export function createPathNavigation(options) {
     for (let i = 0; i < parts.length; i += 1) {
       const segment = parts[i];
       acc += `/${segment}`;
+      if (i > 0) {
+        fragments.push(createSeparator());
+      }
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = segment;

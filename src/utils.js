@@ -9,6 +9,21 @@ export function encodeBasicAuth(username, password) {
   return `Basic ${token}`;
 }
 
+export function encodeUrlForRequest(url) {
+  const raw = String(url || "");
+  const parts = raw.split(/(%[0-9A-Fa-f]{2})/g);
+  const encoded = parts
+    .filter((part) => part !== "")
+    .map((part) => {
+      if (/^%[0-9A-Fa-f]{2}$/.test(part)) {
+        return part;
+      }
+      return encodeURI(part).replace(/#/g, "%23").replace(/\?/g, "%3F");
+    })
+    .join("");
+  return encoded;
+}
+
 export function normalizePath(path) {
   if (!path) {
     return "/";
@@ -55,4 +70,22 @@ export function formatDate(dateString) {
     return "";
   }
   return date.toLocaleString();
+}
+
+export async function ensureWebDavDir(client, path) {
+  const normalized = normalizePath(String(path || "/"));
+  const parts = normalized.split("/").filter(Boolean);
+  let current = "/";
+  for (const part of parts) {
+    current = `${current}${part}/`;
+    try {
+      await client.mkcol(current);
+    } catch (error) {
+      const status = error?.status || 0;
+      if (status === 405 || status === 409) {
+        continue;
+      }
+      throw error;
+    }
+  }
 }

@@ -96,10 +96,12 @@ export async function loadAiBackupSettings() {
   const mode = base.mode === "auto" || base.mode === "ask" ? base.mode : "off";
   const blockedExtensions = Array.isArray(base.blockedExtensions) ? base.blockedExtensions : [];
   const blockedSites = Array.isArray(base.blockedSites) ? base.blockedSites : [];
+  const backupAccountId = typeof base.backupAccountId === "string" ? base.backupAccountId : "";
   return {
     mode,
     blockedExtensions: blockedExtensions.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean),
-    blockedSites: blockedSites.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean)
+    blockedSites: blockedSites.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean),
+    backupAccountId: backupAccountId.trim()
   };
 }
 

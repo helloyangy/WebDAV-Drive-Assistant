@@ -1,6 +1,6 @@
 import { loadSettings, loadAccounts, loadActiveAccountId } from "./src/storage.js";
 import { WebDavClient } from "./src/webdavClient.js";
-import { normalizePath, formatSize } from "./src/utils.js";
+import { normalizePath, formatSize, ensureWebDavDir } from "./src/utils.js";
 
 const siteText = document.getElementById("siteText");
 const nameText = document.getElementById("nameText");
@@ -18,6 +18,7 @@ const status = document.getElementById("status");
 const params = new URLSearchParams(location.search);
 const site = String(params.get("site") || "").toLowerCase();
 const originalName = String(params.get("name") || "");
+const preferredAccountId = String(params.get("account") || "");
 
 function sanitizeFilename(name) {
   return String(name || "file")
@@ -41,30 +42,13 @@ function buildAiBackupPath(siteKey, filename) {
   };
 }
 
-async function ensureDir(client, path) {
-  const parts = String(path || "/")
-    .split("/")
-    .filter(Boolean);
-  let current = "/";
-  for (const part of parts) {
-    current = `${current}${part}/`;
-    try {
-      await client.mkcol(current);
-    } catch (error) {
-      const status = error?.status || 0;
-      if (status === 405 || status === 409) {
-        continue;
-      }
-      throw error;
-    }
-  }
-}
-
-async function createClientFromActiveAccount() {
+async function createClientFromAccountId(accountId) {
   const settings = await loadSettings();
   const accounts = await loadAccounts();
   const activeId = await loadActiveAccountId();
-  const active = accounts.find((a) => a.id === activeId) || {};
+  const normalized = String(accountId || "").trim();
+  const picked = normalized && accounts.some((a) => a.id === normalized) ? normalized : activeId;
+  const active = accounts.find((a) => a.id === picked) || {};
   const config = {
     concurrency: 2,
     cacheLimitMb: 200,
@@ -141,14 +125,14 @@ uploadBtn.addEventListener("click", async () => {
   setStatus("准备上传...");
   uploadBtn.disabled = true;
   try {
-    const client = await createClientFromActiveAccount();
+    const client = await createClientFromAccountId(preferredAccountId);
     if (!client.endpoint) {
       setStatus("未配置 WebDAV 账号，请先在扩展里配置并连接。");
       uploadBtn.disabled = false;
       return;
     }
     const target = buildAiBackupPath(site, file.name || originalName || "file");
-    await ensureDir(client, normalizePath(target.dir));
+    await ensureWebDavDir(client, normalizePath(target.dir));
     lastLoaded = 0;
     lastTs = performance.now();
     speedBps = 0;

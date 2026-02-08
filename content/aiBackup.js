@@ -28,8 +28,21 @@
     if (host === "claude.ai" || host.endsWith(".claude.ai")) return "claude";
     if (host === "x.ai" || host.endsWith(".x.ai") || host === "x.com") return "grok";
     if (host === "doubao.com" || host.endsWith(".doubao.com") || host === "www.doubao.com") return "doubao";
+    if (host === "chat.deepseek.com" || host.endsWith(".deepseek.com")) return "deepseek";
+    if (host === "kimi.com" || host === "www.kimi.com" || host.endsWith(".kimi.com")) return "kimi";
     if (host === "yuanbao.tencent.com" || host.endsWith(".yuanbao.tencent.com")) return "yuanbao";
-    if (host === "qianwen.aliyun.com" || host === "tongyi.aliyun.com") return "qianwen";
+    if (
+      host === "qianwen.aliyun.com" ||
+      host === "tongyi.aliyun.com" ||
+      host === "qianwen.com" ||
+      host === "www.qianwen.com" ||
+      host.endsWith(".qianwen.com") ||
+      host === "qwen.ai" ||
+      host === "www.qwen.ai" ||
+      host.endsWith(".qwen.ai")
+    ) {
+      return "qianwen";
+    }
     return "";
   }
 
@@ -158,7 +171,8 @@
   }
 
   async function uploadToWebDav(file, siteKey) {
-    if (file?.size && file.size <= 8 * 1024 * 1024) {
+    const size = Number(file?.size || 0) || 0;
+    if (size && size <= 8 * 1024 * 1024) {
       try {
         showToast(`AI 备份：开始上传 ${file?.name || ""}`, 1400);
         const dataUrl = await new Promise((resolve, reject) => {
@@ -186,111 +200,17 @@
     } catch (error) {
       return { ok: false, error: error?.message || String(error) };
     }
-    const port = chrome.runtime.connect({ name: "aiBackupUpload" });
-    let ready = false;
-    let finished = false;
-    let resultResolved = false;
-    let lastProgress = 0;
-
-    const wait = new Promise((resolve) => {
-      function finish(value) {
-        if (resultResolved) return;
-        resultResolved = true;
-        resolve(value);
-      }
-      port.onMessage.addListener((msg) => {
-        const type = String(msg?.type || "");
-        if (type === "skipped") {
-          finished = true;
-          finish({ ok: true, skipped: true });
-          try {
-            port.disconnect();
-          } catch {}
-          return;
-        }
-        if (type === "ready") {
-          ready = true;
-          return;
-        }
-        if (type === "progress") {
-          const percent = Number(msg?.percent || 0) || 0;
-          if (percent >= lastProgress + 25 || percent === 100) {
-            lastProgress = percent;
-            showToast(`AI 备份进度：${file?.name || ""} ${Math.round(percent)}%`, 1200);
-          }
-          return;
-        }
-        if (type === "done") {
-          finished = true;
-          finish({ ok: true, skipped: false, path: msg?.path || "" });
-          try {
-            port.disconnect();
-          } catch {}
-          return;
-        }
-        if (type === "aborted") {
-          finished = true;
-          finish({ ok: false, aborted: true });
-          try {
-            port.disconnect();
-          } catch {}
-          return;
-        }
-        if (type === "error") {
-          finished = true;
-          const status = Number(msg?.status || 0) || 0;
-          const message = String(msg?.message || "error");
-          finish({ ok: false, status, error: message });
-          try {
-            port.disconnect();
-          } catch {}
-          return;
-        }
-      });
-      port.onDisconnect.addListener(() => {
-        if (!finished) {
-          finished = true;
-          finish({ ok: false, error: "Port disconnected" });
-        }
-      });
-    });
-
-    port.postMessage({
-      type: "start",
-      site: siteKey,
-      fileName: file?.name || "file",
-      size: file?.size || 0,
-      mime: file?.type || "",
-      pageUrl: location.href
-    });
-
-    const start = performance.now();
-    while (!ready && !finished && performance.now() - start < 10_000) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    if (!ready || finished) {
-      if (!finished) {
-        try {
-          port.postMessage({ type: "abort" });
-        } catch {}
-      }
-      return await wait;
-    }
-
-    showToast(`AI 备份：开始上传 ${file?.name || ""}`, 1400);
-    const size = Number(file?.size || 0) || 0;
-    for (let offset = 0; offset < size; offset += CHUNK_SIZE) {
-      if (finished) break;
-      const slice = file.slice(offset, Math.min(size, offset + CHUNK_SIZE));
-      const buffer = await slice.arrayBuffer();
-      port.postMessage({ type: "chunk", buffer });
-    }
-    port.postMessage({ type: "end" });
-    return await wait;
   }
 
   async function handleFiles(files) {
-    const list = Array.from(files || []).filter((f) => f instanceof File);
+    const list = Array.from(files || []).filter(
+      (f) =>
+        f &&
+        typeof f === "object" &&
+        typeof f.name === "string" &&
+        typeof f.size === "number" &&
+        typeof f.slice === "function"
+    );
     if (!list.length) return;
     const siteKey = resolveSiteKey();
     const settings = await loadAiBackupSettings();
@@ -361,6 +281,57 @@
       }
     }
   }
+
+  (() => {
+    const INJECT_ID = "__webdav-ai-backup-main-hook";
+    try {
+      if (!document.getElementById(INJECT_ID)) {
+        const script = document.createElement("script");
+        script.id = INJECT_ID;
+        script.src = chrome.runtime.getURL("content/aiBackupMainHook.js");
+        script.async = false;
+        (document.head || document.documentElement).appendChild(script);
+        script.onload = () => {
+          try {
+            script.remove();
+          } catch {}
+        };
+      }
+    } catch {}
+
+    const seen = new WeakSet();
+    window.addEventListener(
+      "message",
+      (event) => {
+        try {
+          if (event.source !== window) return;
+          const data = event.data;
+          if (!data || typeof data !== "object") return;
+          if (data.__webdavAiBackup !== true) return;
+          if (data.type !== "files") return;
+          const files = Array.isArray(data.files) ? data.files : [];
+          const next = [];
+          for (const value of files) {
+            if (!value || (typeof value !== "object" && typeof value !== "function")) continue;
+            if (seen.has(value)) continue;
+            seen.add(value);
+            if (typeof value?.name === "string" && typeof value?.size === "number" && typeof value?.slice === "function") {
+              next.push(value);
+              continue;
+            }
+            if (typeof value?.size === "number" && typeof value?.slice === "function" && typeof File === "function") {
+              const fileName = String(data?.fileName || "").trim();
+              const safeName = fileName || `file_${Date.now()}`;
+              next.push(new File([value], safeName, { type: value?.type || "" }));
+            }
+          }
+          if (!next.length) return;
+          handleFiles(next).catch(() => {});
+        } catch {}
+      },
+      false
+    );
+  })();
 
   document.addEventListener(
     "change",

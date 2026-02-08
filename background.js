@@ -11,6 +11,7 @@ import {
 } from "./src/storage.js";
 import { getBlob, setBlob, pruneCache, clearCache } from "./src/cache.js";
 import { SyncEngine } from "./src/syncEngine.js";
+import { ensureWebDavDir } from "./src/utils.js";
 
 let settings = null;
 let accounts = [];
@@ -19,6 +20,8 @@ let client = null;
 let sync = null;
 let currentConfig = null;
 let aiBackupSettings = null;
+const aiBackupClientCache = new Map();
+let initPromise = null;
 
 function normalizeOpenMode(mode) {
   return mode === "popup" ? "popup" : "tab";
@@ -61,48 +64,94 @@ function buildConfig() {
   };
 }
 
+function buildConfigForAccount(account) {
+  const base = settings || {};
+  return {
+    concurrency: 2,
+    cacheLimitMb: 200,
+    autoSync: false,
+    syncIntervalMinutes: 30,
+    ...base,
+    ...(account || {})
+  };
+}
+
+function resolveAiBackupAccountId() {
+  const preferred = String(aiBackupSettings?.backupAccountId || "").trim();
+  if (preferred && accounts.some((a) => a.id === preferred)) {
+    return preferred;
+  }
+  return activeAccountId || "";
+}
+
+function getClientForAiBackup(accountId) {
+  const normalized = String(accountId || "").trim();
+  if (!normalized || normalized === activeAccountId) {
+    return client;
+  }
+  const cached = aiBackupClientCache.get(normalized);
+  if (cached) {
+    return cached;
+  }
+  const account = accounts.find((a) => a.id === normalized) || null;
+  const cfg = buildConfigForAccount(account);
+  const next = new WebDavClient(cfg);
+  aiBackupClientCache.set(normalized, next);
+  return next;
+}
+
 function updateConfig() {
   currentConfig = buildConfig();
   client.updateConfig(currentConfig);
   sync.options.concurrency = currentConfig.concurrency;
+  aiBackupClientCache.clear();
 }
 
 async function init() {
-  settings = await loadSettings();
-  aiBackupSettings = await loadAiBackupSettings();
-  accounts = await loadAccounts();
-  activeAccountId = await loadActiveAccountId();
-  currentConfig = buildConfig();
-  client = new WebDavClient(currentConfig);
-  sync = new SyncEngine(client, { concurrency: currentConfig.concurrency });
-  await ensureNoActionPopup();
-  subscribeSettings((next) => {
-    settings = next;
-    updateConfig();
-    ensureNoActionPopup().catch(() => {});
-    scheduleAutoSync().catch(() => {});
-  });
-  subscribeAiBackupSettings((next) => {
-    aiBackupSettings = next || null;
-  });
-  subscribeAccounts((next) => {
-    accounts = next;
-    updateConfig();
-  });
-  subscribeActiveAccount((next) => {
-    activeAccountId = next;
-    updateConfig();
-  });
+  if (initPromise) {
+    return await initPromise;
+  }
+  initPromise = Promise.resolve()
+    .then(async () => {
+      settings = await loadSettings();
+      aiBackupSettings = await loadAiBackupSettings();
+      accounts = await loadAccounts();
+      activeAccountId = await loadActiveAccountId();
+      currentConfig = buildConfig();
+      client = new WebDavClient(currentConfig);
+      sync = new SyncEngine(client, { concurrency: currentConfig.concurrency });
+      await ensureNoActionPopup();
+      subscribeSettings((next) => {
+        settings = next;
+        updateConfig();
+        ensureNoActionPopup().catch(() => {});
+        scheduleAutoSync().catch(() => {});
+      });
+      subscribeAiBackupSettings((next) => {
+        aiBackupSettings = next || null;
+      });
+      subscribeAccounts((next) => {
+        accounts = next;
+        updateConfig();
+      });
+      subscribeActiveAccount((next) => {
+        activeAccountId = next;
+        updateConfig();
+      });
+    })
+    .catch((error) => {
+      initPromise = null;
+      throw error;
+    });
+  return await initPromise;
 }
 
 async function ensureInit() {
-  if (!settings || !client) {
-    await init();
-  }
+  await init();
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  init();
+  init().catch(() => {});
 });
 
 chrome.action.onClicked.addListener(() => {
@@ -145,10 +194,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         for (let i = 0; i < binary.length; i += 1) {
           bytes[i] = binary.charCodeAt(i);
         }
+        const accountId = resolveAiBackupAccountId();
+        const aiClient = getClientForAiBackup(accountId);
         const target = buildAiBackupPath(site, fileName);
-        await ensureDir(target.dir);
+        await ensureWebDavDir(aiClient, target.dir);
         const blob = new Blob([bytes], { type: mime });
-        await client.put(target.path, blob);
+        await aiClient.put(target.path, blob);
         sendResponse({ ok: true, skipped: false, path: target.path, size: blob.size });
         return;
       }
@@ -156,8 +207,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "openAiBackupAssist") {
         const site = String(message?.site || "").toLowerCase();
         const fileName = String(message?.fileName || "");
+        const accountId = resolveAiBackupAccountId();
         const url = chrome.runtime.getURL(
-          `aiBackupAssist.html?site=${encodeURIComponent(site)}&name=${encodeURIComponent(fileName)}`
+          `aiBackupAssist.html?site=${encodeURIComponent(site)}&name=${encodeURIComponent(fileName)}&account=${encodeURIComponent(
+            accountId
+          )}`
         );
         await chrome.windows.create({
           url,
@@ -203,10 +257,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true, skipped: true });
           return;
         }
+        const accountId = resolveAiBackupAccountId();
+        const aiClient = getClientForAiBackup(accountId);
         const target = buildAiBackupPath(site, fileName);
-        await ensureDir(target.dir);
+        await ensureWebDavDir(aiClient, target.dir);
         const blob = new Blob([bytes], { type: mime });
-        await client.put(target.path, blob);
+        await aiClient.put(target.path, blob);
         sendResponse({ ok: true, skipped: false, path: target.path, size: size || blob.size });
         return;
       }
@@ -235,7 +291,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       if (message.type === "delete") {
-        await client.delete(message.path);
+        if (message?.href && typeof client.deleteByHref === "function") {
+          await client.deleteByHref(String(message.href));
+        } else {
+          await client.delete(message.path);
+        }
         sendResponse({ ok: true });
         return;
       }
@@ -316,25 +376,6 @@ function getFileExtension(name) {
   return lower.slice(idx + 1);
 }
 
-async function ensureDir(path) {
-  const parts = String(path || "/")
-    .split("/")
-    .filter(Boolean);
-  let current = "/";
-  for (const part of parts) {
-    current = `${current}${part}/`;
-    try {
-      await client.mkcol(current);
-    } catch (error) {
-      const status = error?.status || 0;
-      if (status === 405 || status === 409) {
-        continue;
-      }
-      throw error;
-    }
-  }
-}
-
 function buildAiBackupPath(site, filename) {
   const now = new Date();
   const date = now.toISOString().slice(0, 10);
@@ -365,6 +406,7 @@ chrome.runtime.onConnect.addListener((port) => {
   let chunks = [];
   let uploadTask = null;
   let closing = false;
+  let aiClient = null;
 
   function closePort() {
     closing = true;
@@ -451,8 +493,10 @@ chrome.runtime.onConnect.addListener((port) => {
             return;
           }
 
+          const accountId = resolveAiBackupAccountId();
+          aiClient = getClientForAiBackup(accountId);
           const target = buildAiBackupPath(site, fileName);
-          await ensureDir(target.dir);
+          await ensureWebDavDir(aiClient, target.dir);
           port.postMessage({ type: "ready", path: target.path });
           targetPath = target.path;
           return;
@@ -505,7 +549,8 @@ chrome.runtime.onConnect.addListener((port) => {
           chunks = [];
           Promise.resolve()
             .then(async () => {
-              await client.put(targetPath, blob);
+              const targetClient = aiClient || client;
+              await targetClient.put(targetPath, blob);
               port.postMessage({ type: "progress", loaded: totalBytes || blob.size || bytesReceived, total: totalBytes || blob.size || bytesReceived, percent: 100 });
             })
             .then(() => {

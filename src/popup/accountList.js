@@ -1,7 +1,7 @@
 import { getAccountName, getInitial } from "./accountUtils.js";
 
 export function createAccountListController(options) {
-  const { listElement, searchInput, onSelectAccount, onEditAccount, onConnectAccount, onDeleteAccount, t } = options;
+  const { listElement, searchInput, onSelectAccount, onEditAccount, onConnectAccount, onMoveUp, onMoveDown, onDeleteAccount, t } = options;
   let accounts = [];
   let activeAccountId = "";
 
@@ -56,6 +56,9 @@ export function createAccountListController(options) {
       menuBtn.textContent = "⋯";
       const menu = document.createElement("div");
       menu.className = "account-menu";
+      const index = accounts.findIndex((a) => a.id === account.id);
+      const canMoveUp = index > 0;
+      const canMoveDown = index >= 0 && index < accounts.length - 1;
       const editItem = document.createElement("button");
       editItem.type = "button";
       editItem.textContent = t?.("ui.edit") || "编辑";
@@ -72,6 +75,28 @@ export function createAccountListController(options) {
         closeAllMenus();
         await onConnectAccount(account);
       });
+      const moveUpItem = document.createElement("button");
+      moveUpItem.type = "button";
+      moveUpItem.disabled = !canMoveUp || typeof onMoveUp !== "function";
+      moveUpItem.textContent = t?.("ui.moveUp") || "上移";
+      moveUpItem.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        closeAllMenus();
+        if (typeof onMoveUp === "function") {
+          await onMoveUp(account);
+        }
+      });
+      const moveDownItem = document.createElement("button");
+      moveDownItem.type = "button";
+      moveDownItem.disabled = !canMoveDown || typeof onMoveDown !== "function";
+      moveDownItem.textContent = t?.("ui.moveDown") || "下移";
+      moveDownItem.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        closeAllMenus();
+        if (typeof onMoveDown === "function") {
+          await onMoveDown(account);
+        }
+      });
       const deleteItem = document.createElement("button");
       deleteItem.type = "button";
       deleteItem.className = "danger";
@@ -83,6 +108,8 @@ export function createAccountListController(options) {
       });
       menu.appendChild(editItem);
       menu.appendChild(connectItem);
+      menu.appendChild(moveUpItem);
+      menu.appendChild(moveDownItem);
       menu.appendChild(deleteItem);
       menuBtn.addEventListener("click", (event) => {
         event.stopPropagation();

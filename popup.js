@@ -29,6 +29,8 @@ import { createFileOps } from "./src/popup/features/fileOps/index.js";
 import { createAccountsController } from "./src/popup/features/accounts/controller.js";
 import { createConnectionController } from "./src/popup/features/connection/controller.js";
 import { createDialogsController } from "./src/popup/features/dialogs/controller.js";
+import { createAiBackupController } from "./src/popup/features/aiBackup/controller.js";
+import { createSidebarFooterController } from "./src/popup/features/sidebarFooter/controller.js";
 
 const fileList = document.getElementById("fileList");
 const pathInput = document.getElementById("pathInput");
@@ -36,6 +38,7 @@ const upBtn = document.getElementById("upBtn");
 const homeBtn = document.getElementById("homeBtn");
 const pathChips = document.getElementById("pathChips");
 const refreshBtn = document.getElementById("refreshBtn");
+const previewProgressBtn = document.getElementById("previewProgressBtn");
 const viewToggleBtn = document.getElementById("viewToggleBtn");
 const viewToggleIcon = document.getElementById("viewToggleIcon");
 const uploadInput = document.getElementById("uploadInput");
@@ -59,6 +62,7 @@ const searchInput = document.getElementById("searchInput");
 const settingsBtn = document.getElementById("settingsBtn");
 const aiBackupBtn = document.getElementById("aiBackupBtn");
 const helpBtn = document.getElementById("helpBtn");
+const githubBtn = document.getElementById("githubBtn");
 const connStatus = document.getElementById("connStatus");
 const topHint = document.getElementById("topHint");
 const uploadStatusBtn = document.getElementById("uploadStatusBtn");
@@ -87,6 +91,7 @@ const aiBackupModal = document.getElementById("aiBackupModal");
 const aiBackupTitle = document.getElementById("aiBackupTitle");
 const closeAiBackupBtn = document.getElementById("closeAiBackupBtn");
 const aiBackupForm = document.getElementById("aiBackupForm");
+const aiBackupDriveSelect = document.getElementById("aiBackupDriveSelect");
 const aiBackupBlockedTypes = document.getElementById("aiBackupBlockedTypes");
 const aiBackupCancelBtn = document.getElementById("aiBackupCancelBtn");
 const blockSiteChatgpt = document.getElementById("blockSiteChatgpt");
@@ -94,6 +99,8 @@ const blockSiteGemini = document.getElementById("blockSiteGemini");
 const blockSiteGrok = document.getElementById("blockSiteGrok");
 const blockSiteClaude = document.getElementById("blockSiteClaude");
 const blockSiteDoubao = document.getElementById("blockSiteDoubao");
+const blockSiteDeepseek = document.getElementById("blockSiteDeepseek");
+const blockSiteKimi = document.getElementById("blockSiteKimi");
 const blockSiteYuanbao = document.getElementById("blockSiteYuanbao");
 const blockSiteQianwen = document.getElementById("blockSiteQianwen");
 const dialogModal = document.getElementById("dialogModal");
@@ -142,7 +149,6 @@ const globalAutoSyncInput = document.getElementById("globalAutoSyncInput");
 const globalSyncIntervalInput = document.getElementById("globalSyncIntervalInput");
 
 let defaults = null;
-let aiBackupSettings = null;
 let viewMode = "list";
 let lastListedItems = [];
 let i18n = createI18n("zh-CN");
@@ -172,6 +178,12 @@ const accountListController = createAccountListController({
   },
   onConnectAccount: async (account) => {
     await connectAccount(account);
+  },
+  onMoveUp: async (account) => {
+    await accountsController.moveAccountUp(account.id);
+  },
+  onMoveDown: async (account) => {
+    await accountsController.moveAccountDown(account.id);
   },
   onDeleteAccount: async (account) => {
     await deleteAccount(account.id);
@@ -290,6 +302,40 @@ const accountsController = createAccountsController({
   dialogs,
   t
 });
+
+const aiBackupController = createAiBackupController({
+  t,
+  aiBackupBtn,
+  cancelBtn: aiBackupCancelBtn,
+  form: aiBackupForm,
+  modalController: aiBackupModalController,
+  blockedTypesInput: aiBackupBlockedTypes,
+  driveSelect: aiBackupDriveSelect,
+  siteCheckboxes: {
+    chatgpt: blockSiteChatgpt,
+    gemini: blockSiteGemini,
+    grok: blockSiteGrok,
+    claude: blockSiteClaude,
+    doubao: blockSiteDoubao,
+    deepseek: blockSiteDeepseek,
+    kimi: blockSiteKimi,
+    yuanbao: blockSiteYuanbao,
+    qianwen: blockSiteQianwen
+  },
+  loadSettings: loadAiBackupSettings,
+  saveSettings: saveAiBackupSettings,
+  getAccounts: () => accountsController.getAccounts(),
+  getAccountName,
+  flashTopHint
+});
+aiBackupController.init();
+
+createSidebarFooterController({
+  helpBtn,
+  githubBtn,
+  helpModalController,
+  t
+}).init();
 const { showDownloadError } = createDownloadErrorModal({
   modalController: downloadErrorModalController,
   downloadErrorText,
@@ -357,7 +403,22 @@ const previewController = createPreviewController({
   createClientFromActiveAccount: clientFactory.createClientFromActiveAccount,
   relativePathFromHref,
   formatErrorDetail,
-  t
+  formatSize,
+  t,
+  onBackgroundStateChange: (state) => {
+    if (!previewProgressBtn) {
+      return;
+    }
+    const visible = Boolean(state?.visible);
+    previewProgressBtn.hidden = !visible;
+    if (!visible) {
+      return;
+    }
+    const key = state?.state === "ready" ? "preview.backgroundReady" : "preview.backgroundLoading";
+    const title = t(key);
+    previewProgressBtn.setAttribute("title", title);
+    previewProgressBtn.setAttribute("aria-label", title);
+  }
 });
 
 previewController.bindCleanupOnClose();
@@ -686,58 +747,6 @@ function setFormFromSettings(settings) {
   globalSyncIntervalInput.value = base.syncIntervalMinutes ?? 30;
 }
 
-function parseExtensionList(text) {
-  return String(text || "")
-    .split(/[,，\s]+/g)
-    .map((v) => String(v || "").trim().toLowerCase().replace(/^\./, ""))
-    .filter(Boolean);
-}
-
-function getAiBackupModeFromForm() {
-  const picked = aiBackupForm?.querySelector('input[name="aiBackupMode"]:checked')?.value || "off";
-  return picked === "auto" || picked === "ask" ? picked : "off";
-}
-
-function setAiBackupFormFromSettings(settings) {
-  const base = settings || {};
-  const mode = base.mode === "auto" || base.mode === "ask" ? base.mode : "off";
-  const radios = aiBackupForm?.querySelectorAll('input[name="aiBackupMode"]') || [];
-  for (const radio of radios) {
-    if (radio instanceof HTMLInputElement) {
-      radio.checked = radio.value === mode;
-    }
-  }
-  if (aiBackupBlockedTypes) {
-    const list = Array.isArray(base.blockedExtensions) ? base.blockedExtensions : [];
-    aiBackupBlockedTypes.value = list.join(", ");
-  }
-  const blockedSites = new Set((Array.isArray(base.blockedSites) ? base.blockedSites : []).map((v) => String(v || "").toLowerCase()));
-  if (blockSiteChatgpt) blockSiteChatgpt.checked = blockedSites.has("chatgpt");
-  if (blockSiteGemini) blockSiteGemini.checked = blockedSites.has("gemini");
-  if (blockSiteGrok) blockSiteGrok.checked = blockedSites.has("grok");
-  if (blockSiteClaude) blockSiteClaude.checked = blockedSites.has("claude");
-  if (blockSiteDoubao) blockSiteDoubao.checked = blockedSites.has("doubao");
-  if (blockSiteYuanbao) blockSiteYuanbao.checked = blockedSites.has("yuanbao");
-  if (blockSiteQianwen) blockSiteQianwen.checked = blockedSites.has("qianwen");
-}
-
-function collectAiBackupSettingsFromForm() {
-  const blockedExtensions = parseExtensionList(aiBackupBlockedTypes?.value);
-  const blockedSites = [];
-  if (blockSiteChatgpt?.checked) blockedSites.push("chatgpt");
-  if (blockSiteGemini?.checked) blockedSites.push("gemini");
-  if (blockSiteGrok?.checked) blockedSites.push("grok");
-  if (blockSiteClaude?.checked) blockedSites.push("claude");
-  if (blockSiteDoubao?.checked) blockedSites.push("doubao");
-  if (blockSiteYuanbao?.checked) blockedSites.push("yuanbao");
-  if (blockSiteQianwen?.checked) blockedSites.push("qianwen");
-  return {
-    mode: getAiBackupModeFromForm(),
-    blockedExtensions: [...new Set(blockedExtensions)],
-    blockedSites: [...new Set(blockedSites)]
-  };
-}
-
 async function setActiveAccount(accountId) {
   await connectionController.setActiveAccount(accountId);
 }
@@ -1006,7 +1015,7 @@ async function listPath() {
 
 async function hydrateSettings() {
   defaults = await loadSettings();
-  aiBackupSettings = await loadAiBackupSettings();
+  await aiBackupController.hydrate();
   setLanguage(defaults.language);
   viewMode = await loadViewMode();
   applyViewMode(viewMode);
@@ -1038,31 +1047,6 @@ settingsBtn?.addEventListener("click", async () => {
   settingsModalController.open();
 });
 
-aiBackupBtn?.addEventListener("click", async () => {
-  if (!aiBackupSettings) {
-    aiBackupSettings = await loadAiBackupSettings();
-  }
-  setAiBackupFormFromSettings(aiBackupSettings);
-  aiBackupModalController.open();
-});
-
-aiBackupCancelBtn?.addEventListener("click", () => {
-  aiBackupModalController.close();
-});
-
-aiBackupForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const next = collectAiBackupSettingsFromForm();
-  await saveAiBackupSettings(next);
-  aiBackupSettings = next;
-  flashTopHint(t("aiBackup.saved"));
-  aiBackupModalController.close();
-});
-
-helpBtn?.addEventListener("click", () => {
-  helpModalController.open(t("ui.help"));
-});
-
 viewToggleBtn?.addEventListener("click", async () => {
   const next = viewMode === "grid" ? "list" : "grid";
   applyViewMode(next);
@@ -1075,6 +1059,10 @@ viewToggleBtn?.addEventListener("click", async () => {
   } else {
     showEmptyState("disconnected");
   }
+});
+
+previewProgressBtn?.addEventListener("click", () => {
+  previewController?.openProgress?.();
 });
 
 langZhBtn?.addEventListener("click", () => {

@@ -1,5 +1,3 @@
-import { normalizePath } from "../../../utils.js";
-
 export function createFileOps(options) {
   const { sendMessage, clientFactory, relativePathFromHref } = options;
 
@@ -22,8 +20,7 @@ export function createFileOps(options) {
   }
 
   async function removeByHref(href) {
-    const path = relativePathFromHref(href);
-    await sendMessage({ type: "delete", path });
+    await sendMessage({ type: "delete", href });
   }
 
   async function downloadByHref(href, filename) {
@@ -53,15 +50,19 @@ export function createFileOps(options) {
   }
 
   async function renameByHref(href, nextName, isDir = false) {
+    const client = clientFactory.createClientFromActiveAccount();
+    if (typeof client.moveByHref === "function") {
+      await client.moveByHref(href, nextName, isDir);
+      return;
+    }
     const source = relativePathFromHref(href);
     const parts = String(source || "/")
       .split("/")
       .filter(Boolean);
     parts.pop();
     const parent = parts.length ? `/${parts.join("/")}` : "/";
-    const base = normalizePath(`${parent}/${nextName}`);
+    const base = `${parent}${parent.endsWith("/") ? "" : "/"}${nextName}`;
     const destination = isDir ? (base.endsWith("/") ? base : `${base}/`) : base;
-    const client = clientFactory.createClientFromActiveAccount();
     await client.move(source, destination);
   }
 
