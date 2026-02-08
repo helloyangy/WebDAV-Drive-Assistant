@@ -130,6 +130,27 @@ export class DigestAuth {
     this.endpoint = String(options.endpoint || "");
   }
 
+  setChallenge(challenge) {
+    const next = challenge && typeof challenge === "object" ? challenge : null;
+    if (!next?.nonce || !next?.realm) {
+      return false;
+    }
+    this.challenge = {
+      realm: String(next.realm || ""),
+      nonce: String(next.nonce || ""),
+      opaque: String(next.opaque || ""),
+      qop: Array.isArray(next.qop) ? next.qop.map((v) => String(v || "").trim()).filter(Boolean) : [],
+      algorithm: String(next.algorithm || "MD5"),
+      charset: String(next.charset || ""),
+      userhash: Boolean(next.userhash),
+      stale: Boolean(next.stale)
+    };
+    if (!this.nonceCounts.has(this.challenge.nonce)) {
+      this.nonceCounts.set(this.challenge.nonce, 0);
+    }
+    return true;
+  }
+
   updateCredentials({ endpoint, username, password, mode }) {
     this.endpoint = String(endpoint || "");
     this.username = String(username || "");

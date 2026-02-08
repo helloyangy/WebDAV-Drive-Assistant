@@ -49,6 +49,16 @@
           <span data-i18n="ui.syncInterval"></span>
           <input id="syncIntervalInput" type="number" min="1" max="720" value="30" />
         </label>
+        <label>
+          <span data-i18n="ui.logLevel"></span>
+          <select id="logLevelSelect" data-i18n-attr="aria-label:ui.logLevel">
+            <option value="off" data-i18n="ui.logLevel.off"></option>
+            <option value="error" data-i18n="ui.logLevel.error"></option>
+            <option value="warn" data-i18n="ui.logLevel.warn"></option>
+            <option value="info" data-i18n="ui.logLevel.info"></option>
+            <option value="debug" data-i18n="ui.logLevel.debug"></option>
+          </select>
+        </label>
         <button type="submit" class="primary" data-i18n="common.save"></button>
       </form>
       <div id="savedHint" class="hint"></div>

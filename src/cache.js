@@ -1,3 +1,5 @@
+import { logWarn } from "./logger.js";
+
 const DB_NAME = "webdav_cache";
 const DB_VERSION = 2;
 const META_STORE = "meta";
@@ -14,6 +16,7 @@ export function openCache() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onerror = () => {
       dbPromise = null;
+      logWarn("cache.open_failed", request.error);
       reject(request.error);
     };
     request.onupgradeneeded = () => {
@@ -54,7 +57,10 @@ export async function getMeta(path) {
     const store = tx.objectStore(META_STORE);
     const request = store.get(path);
     request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logWarn("cache.getMeta_failed", request.error);
+      reject(request.error);
+    };
   });
 }
 
@@ -65,7 +71,10 @@ export async function setMeta(meta) {
     const store = tx.objectStore(META_STORE);
     const request = store.put(meta);
     request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logWarn("cache.setMeta_failed", request.error);
+      reject(request.error);
+    };
   });
 }
 
@@ -76,7 +85,10 @@ export async function listMeta() {
     const store = tx.objectStore(META_STORE);
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logWarn("cache.listMeta_failed", request.error);
+      reject(request.error);
+    };
   });
 }
 
@@ -87,7 +99,10 @@ export async function getBlob(path) {
     const store = tx.objectStore(BLOB_STORE);
     const request = store.get(path);
     request.onsuccess = () => resolve(request.result?.blob || null);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logWarn("cache.getBlob_failed", request.error);
+      reject(request.error);
+    };
   });
 }
 
@@ -98,7 +113,10 @@ export async function setBlob(path, blob) {
     const store = tx.objectStore(BLOB_STORE);
     const request = store.put({ path, blob, size: blob?.size || 0, updatedAt: Date.now() });
     request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logWarn("cache.setBlob_failed", request.error);
+      reject(request.error);
+    };
   });
 }
 

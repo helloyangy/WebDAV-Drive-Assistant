@@ -12,6 +12,7 @@ import {
 import { getBlob, setBlob, pruneCache, clearCache } from "./src/cache.js";
 import { SyncEngine } from "./src/syncEngine.js";
 import { ensureWebDavDir } from "./src/utils.js";
+import { setLogLevel, logError } from "./src/logger.js";
 
 let settings = null;
 let accounts = [];
@@ -114,6 +115,7 @@ async function init() {
   initPromise = Promise.resolve()
     .then(async () => {
       settings = await loadSettings();
+      setLogLevel(settings?.logLevel);
       aiBackupSettings = await loadAiBackupSettings();
       accounts = await loadAccounts();
       activeAccountId = await loadActiveAccountId();
@@ -123,9 +125,10 @@ async function init() {
       await ensureNoActionPopup();
       subscribeSettings((next) => {
         settings = next;
+        setLogLevel(settings?.logLevel);
         updateConfig();
-        ensureNoActionPopup().catch(() => {});
-        scheduleAutoSync().catch(() => {});
+        ensureNoActionPopup().catch((err) => logError("background.ensureNoActionPopup_failed", err));
+        scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_failed", err));
       });
       subscribeAiBackupSettings((next) => {
         aiBackupSettings = next || null;
@@ -151,7 +154,7 @@ async function ensureInit() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  init().catch(() => {});
+  init().catch((err) => logError("background.onInstalled_init_error", err));
 });
 
 chrome.action.onClicked.addListener(() => {
@@ -159,7 +162,7 @@ chrome.action.onClicked.addListener(() => {
     .then(async () => {
       await openAppByMode(settings?.openMode);
     })
-    .catch(() => {});
+    .catch((err) => logError("background.action_click_error", err));
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -338,6 +341,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: false, error: type ? `Unknown message: ${type}` : "Unknown message" });
     })
     .catch((error) => {
+      logError("background.onMessage_error", { type: message?.type, error });
       sendResponse({
         ok: false,
         error: error.message || String(error),
