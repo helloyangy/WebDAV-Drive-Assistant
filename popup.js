@@ -752,7 +752,11 @@ function setFormFromSettings(settings) {
   globalConcurrencyInput.value = base.concurrency ?? 2;
   globalCacheLimitInput.value = base.cacheLimitMb ?? 200;
   globalAutoSyncInput.checked = Boolean(base.autoSync);
+<<<<<<< HEAD
   globalSyncIntervalInput.value = normalizeIntervalMinutes(base.syncIntervalMinutes, 30);
+=======
+  globalSyncIntervalInput.value = base.syncIntervalMinutes ?? 30;
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
   if (logLevelSelect) {
     logLevelSelect.value = String(base.logLevel || "warn");
   }

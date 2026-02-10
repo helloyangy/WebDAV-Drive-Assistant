@@ -450,43 +450,73 @@
         </div>
         <div class="help-content" data-i18n-show-lang="zh-CN">
           <div class="help-section">
+<<<<<<< HEAD
             <div class="help-heading">版本更新（0.1.2 → 0.1.3）</div>
             <div class="help-text">本次更新聚焦于同步稳定性、AI 备份健壮性与日志降噪。</div>
+=======
+            <div class="help-heading">版本更新（0.1.1 → 0.1.2）</div>
+            <div class="help-text">本次更新主要聚焦于认证稳定性、可观测性与预览/解析细节的健壮性。</div>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
           </div>
           <div class="help-section">
             <div class="help-heading">重点更新</div>
             <ul class="help-list">
+<<<<<<< HEAD
               <li>自动同步间隔做了范围保护，且设置/账号变化后会立即重排同步闹钟。</li>
               <li>AI 备份更稳：避免跨域响应头警告，弱化泛化文件名导致的错误备份。</li>
               <li>控制台日志降噪，去除多余的 WebDAV 失败告警输出。</li>
+=======
+              <li>修复 Digest 场景下上传/预览偶发触发浏览器密码弹窗：后台与弹窗共享 Digest challenge，避免首次 401。</li>
+              <li>新增“日志级别”设置：可按需开启/关闭 debug 输出，且自动脱敏敏感字段。</li>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
             </ul>
           </div>
           <div class="help-section">
             <div class="help-heading">修复与优化</div>
             <ul class="help-list">
+<<<<<<< HEAD
               <li>完善 AI 备份文件名推断与回退策略，减少“file”命名。</li>
               <li>修复同步相关配置未即时生效的问题。</li>
+=======
+              <li>改进 PROPFIND XML 解析：优先使用 DOMParser，并为超大响应增加长度保护。</li>
+              <li>修复弹窗拖拽在部分 DOM 缺失场景下的空引用错误。</li>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
             </ul>
           </div>
         </div>
         <div class="help-content" data-i18n-show-lang="en" hidden>
           <div class="help-section">
+<<<<<<< HEAD
             <div class="help-heading">What’s new (0.1.2 → 0.1.3)</div>
             <div class="help-text">This update focuses on sync stability, AI backup robustness, and quieter logs.</div>
+=======
+            <div class="help-heading">What’s new (0.1.1 → 0.1.2)</div>
+            <div class="help-text">This update focuses on authentication stability, observability, and robustness in preview/parsing.</div>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
           </div>
           <div class="help-section">
             <div class="help-heading">Highlights</div>
             <ul class="help-list">
+<<<<<<< HEAD
               <li>Sync interval is now clamped to a safe range, and changes reschedule auto-sync immediately.</li>
               <li>AI backup avoids cross-origin response header warnings and reduces generic filename issues.</li>
               <li>Less noisy console logs by removing redundant WebDAV warning output.</li>
+=======
+              <li>Fix occasional browser password prompt during upload/preview in Digest mode by sharing Digest challenge within the extension.</li>
+              <li>Add log level setting with automatic redaction for sensitive fields.</li>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
             </ul>
           </div>
           <div class="help-section">
             <div class="help-heading">Fixes & improvements</div>
             <ul class="help-list">
+<<<<<<< HEAD
               <li>Improve AI backup filename inference and fallback to reduce “file” naming.</li>
               <li>Fix auto-sync settings not taking effect immediately.</li>
+=======
+              <li>Improve PROPFIND XML parsing by preferring DOMParser and adding a size safeguard for extremely large responses.</li>
+              <li>Fix a null reference when dragging the modal in certain DOM edge cases.</li>
+>>>>>>> 775c8f53c4d12741f078e082a69986f631e8bfed
             </ul>
           </div>
         </div>
