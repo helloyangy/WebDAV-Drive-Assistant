@@ -1,4 +1,4 @@
-import { loadSettings, loadAccounts, loadActiveAccountId } from "./src/storage.js";
+﻿import { loadSettings, loadAccounts, loadActiveAccountId } from "./src/storage.js";
 import { WebDavClient } from "./src/webdavClient.js";
 import { normalizePath, formatSize, ensureWebDavDir } from "./src/utils.js";
 
@@ -18,6 +18,7 @@ const status = document.getElementById("status");
 const params = new URLSearchParams(location.search);
 const site = String(params.get("site") || "").toLowerCase();
 const originalName = String(params.get("name") || "");
+const originalSize = Number(params.get("size") || 0);
 const preferredAccountId = String(params.get("account") || "");
 
 function sanitizeFilename(name) {
@@ -164,6 +165,7 @@ uploadBtn.addEventListener("click", async () => {
 });
 
 siteText.textContent = site || "-";
-nameText.textContent = originalName || "-";
+nameText.textContent = originalName ? `${originalName}${originalSize ? ` (${formatSize(originalSize)})` : ""}` : "-";
 resetUi();
+
 

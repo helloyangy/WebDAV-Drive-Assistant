@@ -72,6 +72,22 @@ export function formatDate(dateString) {
   return date.toLocaleString();
 }
 
+export function normalizeIntervalMinutes(value, fallback = 30, min = 1, max = 720) {
+  const baseFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : 30;
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return baseFallback;
+  }
+  const rounded = Math.round(num);
+  if (rounded < min) {
+    return min;
+  }
+  if (rounded > max) {
+    return max;
+  }
+  return rounded;
+}
+
 export async function ensureWebDavDir(client, path) {
   const normalized = normalizePath(String(path || "/"));
   const parts = normalized.split("/").filter(Boolean);
@@ -84,6 +100,15 @@ export async function ensureWebDavDir(client, path) {
       const status = error?.status || 0;
       if (status === 405 || status === 409) {
         continue;
+      }
+      if (error && typeof error === "object") {
+        try {
+          error.path = current;
+          error.method = "MKCOL";
+          if (error.message) {
+            error.message = `MKCOL ${current} failed: ${error.message}`;
+          }
+        } catch {}
       }
       throw error;
     }

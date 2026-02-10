@@ -1,4 +1,4 @@
-import { formatDate, formatSize, normalizePath } from "./src/utils.js";
+import { formatDate, formatSize, normalizeIntervalMinutes, normalizePath } from "./src/utils.js";
 import {
   loadSettings,
   loadAccounts,
@@ -31,6 +31,7 @@ import { createConnectionController } from "./src/popup/features/connection/cont
 import { createDialogsController } from "./src/popup/features/dialogs/controller.js";
 import { createAiBackupController } from "./src/popup/features/aiBackup/controller.js";
 import { createSidebarFooterController } from "./src/popup/features/sidebarFooter/controller.js";
+import { setLogLevel, logDebug, logError, logInfo, logWarn } from "./src/logger.js";
 
 const fileList = document.getElementById("fileList");
 const pathInput = document.getElementById("pathInput");
@@ -147,6 +148,7 @@ const globalConcurrencyInput = document.getElementById("globalConcurrencyInput")
 const globalCacheLimitInput = document.getElementById("globalCacheLimitInput");
 const globalAutoSyncInput = document.getElementById("globalAutoSyncInput");
 const globalSyncIntervalInput = document.getElementById("globalSyncIntervalInput");
+const logLevelSelect = document.getElementById("logLevelSelect");
 
 let defaults = null;
 let viewMode = "list";
@@ -405,6 +407,12 @@ const previewController = createPreviewController({
   formatErrorDetail,
   formatSize,
   t,
+  logger: {
+    debug: logDebug,
+    info: logInfo,
+    warn: logWarn,
+    error: logError
+  },
   onBackgroundStateChange: (state) => {
     if (!previewProgressBtn) {
       return;
@@ -744,7 +752,10 @@ function setFormFromSettings(settings) {
   globalConcurrencyInput.value = base.concurrency ?? 2;
   globalCacheLimitInput.value = base.cacheLimitMb ?? 200;
   globalAutoSyncInput.checked = Boolean(base.autoSync);
-  globalSyncIntervalInput.value = base.syncIntervalMinutes ?? 30;
+  globalSyncIntervalInput.value = normalizeIntervalMinutes(base.syncIntervalMinutes, 30);
+  if (logLevelSelect) {
+    logLevelSelect.value = String(base.logLevel || "warn");
+  }
 }
 
 async function setActiveAccount(accountId) {
@@ -1015,6 +1026,7 @@ async function listPath() {
 
 async function hydrateSettings() {
   defaults = await loadSettings();
+  setLogLevel(defaults?.logLevel);
   await aiBackupController.hydrate();
   setLanguage(defaults.language);
   viewMode = await loadViewMode();
@@ -1124,14 +1136,16 @@ globalSettingsForm?.addEventListener("submit", async (event) => {
     concurrency: Number(globalConcurrencyInput.value || 2),
     cacheLimitMb: Number(globalCacheLimitInput.value || 200),
     autoSync: globalAutoSyncInput.checked,
-    syncIntervalMinutes: Number(globalSyncIntervalInput.value || 30),
+    syncIntervalMinutes: normalizeIntervalMinutes(globalSyncIntervalInput.value, 30),
     openMode: openModeInput?.value === "popup" ? "popup" : "tab",
     sortBy,
     sortOrder: sortOrderInput?.value === "desc" ? "desc" : "asc",
-    hideDotfiles: Boolean(hideDotfilesInput?.checked)
+    hideDotfiles: Boolean(hideDotfilesInput?.checked),
+    logLevel: String(logLevelSelect?.value || "warn")
   };
   await saveSettings(next);
   defaults = next;
+  setLogLevel(defaults?.logLevel);
   if (connectionController.isConnected() && endpointInput.value.trim()) {
     const preferred = applyListPreferences(lastListedItems, defaults);
     fileListController.setItems(preferred);

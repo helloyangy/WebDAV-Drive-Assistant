@@ -1,5 +1,7 @@
 import { loadSettings, saveSettings } from "./src/storage.js";
 import { applyI18n, createI18n, normalizeLanguage } from "./src/i18n.js";
+import { setLogLevel } from "./src/logger.js";
+import { normalizeIntervalMinutes } from "./src/utils.js";
 
 const form = document.getElementById("settingsForm");
 const languageSelect = document.getElementById("languageSelect");
@@ -11,12 +13,14 @@ const concurrencyInput = document.getElementById("concurrencyInput");
 const cacheLimitInput = document.getElementById("cacheLimitInput");
 const autoSyncInput = document.getElementById("autoSyncInput");
 const syncIntervalInput = document.getElementById("syncIntervalInput");
+const logLevelSelect = document.getElementById("logLevelSelect");
 const savedHint = document.getElementById("savedHint");
 
 let i18n = createI18n("zh-CN");
 
 async function hydrate() {
   const settings = await loadSettings();
+  setLogLevel(settings?.logLevel);
   i18n = createI18n(settings.language);
   applyI18n(document, i18n);
   if (languageSelect) {
@@ -29,7 +33,10 @@ async function hydrate() {
   concurrencyInput.value = settings.concurrency || 2;
   cacheLimitInput.value = settings.cacheLimitMb || 200;
   autoSyncInput.checked = Boolean(settings.autoSync);
-  syncIntervalInput.value = settings.syncIntervalMinutes || 30;
+  syncIntervalInput.value = normalizeIntervalMinutes(settings.syncIntervalMinutes, 30);
+  if (logLevelSelect) {
+    logLevelSelect.value = String(settings?.logLevel || "warn");
+  }
 }
 
 languageSelect?.addEventListener("change", () => {
@@ -49,9 +56,11 @@ form.addEventListener("submit", async (event) => {
     concurrency: Number(concurrencyInput.value || 2),
     cacheLimitMb: Number(cacheLimitInput.value || 200),
     autoSync: autoSyncInput.checked,
-    syncIntervalMinutes: Number(syncIntervalInput.value || 30)
+    syncIntervalMinutes: normalizeIntervalMinutes(syncIntervalInput.value, 30),
+    logLevel: String(logLevelSelect?.value || "warn")
   };
   await saveSettings(settings);
+  setLogLevel(settings?.logLevel);
   savedHint.textContent = i18n.t("options.saved");
   setTimeout(() => {
     savedHint.textContent = "";

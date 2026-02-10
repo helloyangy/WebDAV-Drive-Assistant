@@ -11,7 +11,8 @@ import {
 } from "./src/storage.js";
 import { getBlob, setBlob, pruneCache, clearCache } from "./src/cache.js";
 import { SyncEngine } from "./src/syncEngine.js";
-import { ensureWebDavDir } from "./src/utils.js";
+import { ensureWebDavDir, normalizeIntervalMinutes } from "./src/utils.js";
+import { setLogLevel, logError } from "./src/logger.js";
 
 let settings = null;
 let accounts = [];
@@ -54,25 +55,31 @@ function resolveActiveAccount() {
 function buildConfig() {
   const base = settings || {};
   const active = resolveActiveAccount();
+  const merged = { ...base, ...(active || {}) };
   return {
     concurrency: 2,
     cacheLimitMb: 200,
     autoSync: false,
     syncIntervalMinutes: 30,
     ...base,
-    ...(active || {})
+    ...(active || {}),
+    autoSync: Boolean(merged.autoSync),
+    syncIntervalMinutes: normalizeIntervalMinutes(merged.syncIntervalMinutes, 30)
   };
 }
 
 function buildConfigForAccount(account) {
   const base = settings || {};
+  const merged = { ...base, ...(account || {}) };
   return {
     concurrency: 2,
     cacheLimitMb: 200,
     autoSync: false,
     syncIntervalMinutes: 30,
     ...base,
-    ...(account || {})
+    ...(account || {}),
+    autoSync: Boolean(merged.autoSync),
+    syncIntervalMinutes: normalizeIntervalMinutes(merged.syncIntervalMinutes, 30)
   };
 }
 
@@ -105,6 +112,7 @@ function updateConfig() {
   client.updateConfig(currentConfig);
   sync.options.concurrency = currentConfig.concurrency;
   aiBackupClientCache.clear();
+  scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_failed", err));
 }
 
 async function init() {
@@ -114,6 +122,7 @@ async function init() {
   initPromise = Promise.resolve()
     .then(async () => {
       settings = await loadSettings();
+      setLogLevel(settings?.logLevel);
       aiBackupSettings = await loadAiBackupSettings();
       accounts = await loadAccounts();
       activeAccountId = await loadActiveAccountId();
@@ -123,9 +132,9 @@ async function init() {
       await ensureNoActionPopup();
       subscribeSettings((next) => {
         settings = next;
+        setLogLevel(settings?.logLevel);
         updateConfig();
-        ensureNoActionPopup().catch(() => {});
-        scheduleAutoSync().catch(() => {});
+        ensureNoActionPopup().catch((err) => logError("background.ensureNoActionPopup_failed", err));
       });
       subscribeAiBackupSettings((next) => {
         aiBackupSettings = next || null;
@@ -151,7 +160,7 @@ async function ensureInit() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  init().catch(() => {});
+  init().catch((err) => logError("background.onInstalled_init_error", err));
 });
 
 chrome.action.onClicked.addListener(() => {
@@ -159,7 +168,7 @@ chrome.action.onClicked.addListener(() => {
     .then(async () => {
       await openAppByMode(settings?.openMode);
     })
-    .catch(() => {});
+    .catch((err) => logError("background.action_click_error", err));
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -207,9 +216,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "openAiBackupAssist") {
         const site = String(message?.site || "").toLowerCase();
         const fileName = String(message?.fileName || "");
+        const size = Number(message?.size || 0) || 0;
         const accountId = resolveAiBackupAccountId();
         const url = chrome.runtime.getURL(
-          `aiBackupAssist.html?site=${encodeURIComponent(site)}&name=${encodeURIComponent(fileName)}&account=${encodeURIComponent(
+          `aiBackupAssist.html?site=${encodeURIComponent(site)}&name=${encodeURIComponent(fileName)}&size=${size}&account=${encodeURIComponent(
             accountId
           )}`
         );
@@ -338,6 +348,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: false, error: type ? `Unknown message: ${type}` : "Unknown message" });
     })
     .catch((error) => {
+      logError("background.onMessage_error", { type: message?.type, error });
       sendResponse({
         ok: false,
         error: error.message || String(error),
@@ -604,8 +615,9 @@ async function scheduleAutoSync() {
     chrome.alarms.clear("autoSync");
     return;
   }
+  const interval = normalizeIntervalMinutes(currentConfig?.syncIntervalMinutes ?? 30, 30);
   chrome.alarms.create("autoSync", {
-    periodInMinutes: currentConfig.syncIntervalMinutes || 30
+    periodInMinutes: interval
   });
 }
 

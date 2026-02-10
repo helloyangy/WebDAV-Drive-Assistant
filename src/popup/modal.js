@@ -79,6 +79,11 @@ export function createModalController(options) {
   });
 
   headerElement?.addEventListener("mousedown", (event) => {
+    if (!cardElement) {
+      isDragging = false;
+      resetPosition();
+      return;
+    }
     isDragging = true;
     dragStart = { x: event.clientX, y: event.clientY };
     const rect = cardElement.getBoundingClientRect();

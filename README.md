@@ -1,4 +1,4 @@
-# WebDAV 云盘助手
+﻿# WebDAV 云盘助手
 
 <p align="center">
   <a href="#中文">
@@ -159,4 +159,5 @@ AI Backups
 - WebDAV credentials are stored in `chrome.storage.sync`
 - AI backup only runs when enabled by you
 - No page content is uploaded except the files you choose
+
 

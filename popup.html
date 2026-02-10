@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
@@ -390,6 +390,16 @@
             </div>
             <input id="openModeInput" type="hidden" value="tab" />
           </div>
+          <label>
+            <span data-i18n="ui.logLevel"></span>
+            <select id="logLevelSelect" data-i18n-attr="aria-label:ui.logLevel">
+              <option value="off" data-i18n="ui.logLevel.off"></option>
+              <option value="error" data-i18n="ui.logLevel.error"></option>
+              <option value="warn" data-i18n="ui.logLevel.warn"></option>
+              <option value="info" data-i18n="ui.logLevel.info"></option>
+              <option value="debug" data-i18n="ui.logLevel.debug"></option>
+            </select>
+          </label>
           <div class="settings-row">
             <div class="settings-label" data-i18n="ui.sortDefault"></div>
             <div class="settings-controls">
@@ -440,41 +450,43 @@
         </div>
         <div class="help-content" data-i18n-show-lang="zh-CN">
           <div class="help-section">
-            <div class="help-heading">版本更新（0.1.0 → 0.1.1）</div>
-            <div class="help-text">本次更新主要聚焦于认证兼容性与特殊字符路径的稳定性。</div>
+            <div class="help-heading">版本更新（0.1.2 → 0.1.3）</div>
+            <div class="help-text">本次更新聚焦于同步稳定性、AI 备份健壮性与日志降噪。</div>
           </div>
           <div class="help-section">
             <div class="help-heading">重点更新</div>
             <ul class="help-list">
-              <li>新增 Digest 认证支持：当服务器要求 Digest 时，会在 401 后自动解析 challenge 并重试。</li>
-              <li>改进认证兼容：仍保留 Basic 认证路径，兼容更多 WebDAV 服务端配置。</li>
+              <li>自动同步间隔做了范围保护，且设置/账号变化后会立即重排同步闹钟。</li>
+              <li>AI 备份更稳：避免跨域响应头警告，弱化泛化文件名导致的错误备份。</li>
+              <li>控制台日志降噪，去除多余的 WebDAV 失败告警输出。</li>
             </ul>
           </div>
           <div class="help-section">
             <div class="help-heading">修复与优化</div>
             <ul class="help-list">
-              <li>修复文件名/路径包含 # 或 ? 时的请求 URL 解析问题，避免访问/下载/预览被截断。</li>
-              <li>优化流式上传：在 Digest 场景下对上传做预探测，减少 401 导致的失败概率。</li>
+              <li>完善 AI 备份文件名推断与回退策略，减少“file”命名。</li>
+              <li>修复同步相关配置未即时生效的问题。</li>
             </ul>
           </div>
         </div>
         <div class="help-content" data-i18n-show-lang="en" hidden>
           <div class="help-section">
-            <div class="help-heading">What’s new (0.1.0 → 0.1.1)</div>
-            <div class="help-text">This update focuses on authentication compatibility and URL/path robustness.</div>
+            <div class="help-heading">What’s new (0.1.2 → 0.1.3)</div>
+            <div class="help-text">This update focuses on sync stability, AI backup robustness, and quieter logs.</div>
           </div>
           <div class="help-section">
             <div class="help-heading">Highlights</div>
             <ul class="help-list">
-              <li>Digest authentication support: automatically parses the Digest challenge on 401 and retries.</li>
-              <li>Better auth compatibility: keeps Basic auth path for broader server configurations.</li>
+              <li>Sync interval is now clamped to a safe range, and changes reschedule auto-sync immediately.</li>
+              <li>AI backup avoids cross-origin response header warnings and reduces generic filename issues.</li>
+              <li>Less noisy console logs by removing redundant WebDAV warning output.</li>
             </ul>
           </div>
           <div class="help-section">
             <div class="help-heading">Fixes & improvements</div>
             <ul class="help-list">
-              <li>Fix URL parsing when file names/paths contain # or ? to avoid truncated requests.</li>
-              <li>Improve streaming uploads: performs a preflight in Digest mode to reduce 401-related failures.</li>
+              <li>Improve AI backup filename inference and fallback to reduce “file” naming.</li>
+              <li>Fix auto-sync settings not taking effect immediately.</li>
             </ul>
           </div>
         </div>
@@ -483,3 +495,4 @@
     <script type="module" src="popup.js"></script>
   </body>
 </html>
+

@@ -13,6 +13,7 @@ export function createPreviewController(options) {
     t,
     onBackgroundStateChange
   } = options;
+  const logger = options?.logger;
 
   let previewObjectUrl = "";
   let activeTask = null;
@@ -213,7 +214,11 @@ export function createPreviewController(options) {
             pre.textContent = text;
             previewContent.replaceChildren(pre);
           })
-          .catch(() => {});
+          .catch((err) => {
+            if (logger?.debug) {
+              logger.debug("preview.text_error", err);
+            }
+          });
       }
     } else {
       const hint = document.createElement("div");

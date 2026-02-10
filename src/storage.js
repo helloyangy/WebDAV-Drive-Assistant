@@ -16,6 +16,7 @@ export async function loadSettings() {
     sortOrder: "asc",
     hideDotfiles: false,
     language: "zh-CN",
+    logLevel: "warn",
     ...(settings || {})
   };
 }

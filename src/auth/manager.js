@@ -55,6 +55,10 @@ export class AuthManager {
     return this.digest.observeUnauthorizedResponse(response);
   }
 
+  seedDigestChallenge(challenge) {
+    return this.digest.setChallenge(challenge);
+  }
+
   async getPreemptiveAuthorization(method, url, body) {
     if (this.prefersDigest()) {
       if (this.digest.challenge) {

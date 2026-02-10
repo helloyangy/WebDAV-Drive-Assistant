@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const AI_BACKUP_KEY = "webdav_ai_backup_settings";
   const CHUNK_SIZE = 1024 * 1024;
   const PROMPT_ID = "webdav-ai-backup-prompt";
@@ -51,6 +51,30 @@
     const idx = lower.lastIndexOf(".");
     if (idx <= 0) return "";
     return lower.slice(idx + 1);
+  }
+
+  function decodeFilename(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    try {
+      return decodeURIComponent(text);
+    } catch {
+      return text;
+    }
+  }
+
+  function isGenericName(name) {
+    const text = String(name || "").trim().toLowerCase();
+    if (!text) return true;
+    if (text === "file" || text === "body" || text === "blob" || text === "data") return true;
+    return false;
+  }
+
+  function sanitizeFilename(name) {
+    return String(name || "file")
+      .replace(/[\\\/:*?"<>|\u0000-\u001F]/g, "_")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function shouldSkipFile(file, settings, siteKey) {
@@ -172,7 +196,7 @@
 
   async function uploadToWebDav(file, siteKey) {
     const size = Number(file?.size || 0) || 0;
-    if (size && size <= 8 * 1024 * 1024) {
+    if (size <= 8 * 1024 * 1024) {
       try {
         showToast(`AI 备份：开始上传 ${file?.name || ""}`, 1400);
         const dataUrl = await new Promise((resolve, reject) => {
@@ -195,7 +219,12 @@
       }
     }
     try {
-      await chrome.runtime.sendMessage({ type: "openAiBackupAssist", site: siteKey, fileName: file?.name || "" });
+      await chrome.runtime.sendMessage({
+        type: "openAiBackupAssist",
+        site: siteKey,
+        fileName: file?.name || "",
+        size: file?.size || 0
+      });
       return { ok: false, error: "manual_required" };
     } catch (error) {
       return { ok: false, error: error?.message || String(error) };
@@ -242,6 +271,8 @@
                 showToast(`AI 备份：已备份 ${file.name}`);
               } else if (result?.aborted) {
                 showToast(`AI 备份：已取消 ${file.name}`);
+              } else if (result?.error === "manual_required") {
+                showToast(`AI 备份提示：大文件上传请使用弹窗`, 5200);
               } else {
                 const detail = result?.status ? `（${result.status}）` : "";
                 const msg = result?.error ? `：${result.error}` : "：no response";
@@ -269,6 +300,10 @@
             }
             if (result?.aborted) {
               showToast(`AI 备份：已取消 ${file.name}`);
+              return;
+            }
+            if (result?.error === "manual_required") {
+              showToast(`AI 备份提示：大文件上传请使用弹窗`, 5200);
               return;
             }
             const detail = result?.status ? `（${result.status}）` : "";
@@ -320,8 +355,11 @@
               continue;
             }
             if (typeof value?.size === "number" && typeof value?.slice === "function" && typeof File === "function") {
-              const fileName = String(data?.fileName || "").trim();
-              const safeName = fileName || `file_${Date.now()}`;
+              const rawName = decodeFilename(data?.fileName || "");
+              let safeName = sanitizeFilename(rawName);
+              if (isGenericName(safeName)) {
+                safeName = `file_${Date.now()}`;
+              }
               next.push(new File([value], safeName, { type: value?.type || "" }));
             }
           }
@@ -344,4 +382,5 @@
     true
   );
 })();
+
 

@@ -1,5 +1,50 @@
 import { AuthManager } from "./auth/index.js";
 import { encodeUrlForRequest, joinPaths } from "./utils.js";
+import { logDebug } from "./logger.js";
+
+const MAX_PROPFIND_XML_CHARS = 5_000_000;
+const MAX_XML_FRAGMENT_CHARS = 500_000;
+const DIGEST_SEED_PREFIX = "webdav_digest_challenge:";
+
+function getOrigin(endpoint) {
+  try {
+    return new URL(String(endpoint || "")).origin;
+  } catch {
+    return "";
+  }
+}
+
+function getDigestSeedKey(endpoint, username) {
+  const origin = getOrigin(endpoint);
+  const user = String(username || "");
+  if (!origin || !user) {
+    return "";
+  }
+  return `${DIGEST_SEED_PREFIX}${origin}:${encodeURIComponent(user)}`;
+}
+
+async function loadDigestSeed(endpoint, username) {
+  const key = getDigestSeedKey(endpoint, username);
+  if (!key || !globalThis?.chrome?.storage?.session?.get) {
+    return null;
+  }
+  try {
+    const obj = await chrome.storage.session.get(key);
+    return obj?.[key] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveDigestSeed(endpoint, username, seed) {
+  const key = getDigestSeedKey(endpoint, username);
+  if (!key || !globalThis?.chrome?.storage?.session?.set) {
+    return;
+  }
+  try {
+    await chrome.storage.session.set({ [key]: seed });
+  } catch {}
+}
 
 export class WebDavClient {
   constructor(config) {
@@ -48,7 +93,7 @@ export class WebDavClient {
       const message = isHtml ? `${response.status} ${response.statusText}` : text || `${response.status} ${response.statusText}`;
       const error = new Error(message);
       error.status = response.status;
-      error.raw = text || "";
+      error.raw = text && text.length > 200_000 ? `${text.slice(0, 200_000)}…` : text || "";
       throw error;
     }
     return response;
@@ -445,6 +490,7 @@ export class WebDavClient {
     let aborted = false;
     const promise = new Promise((resolve, reject) => {
       const sendAttempt = async (attempt) => {
+        await this._seedDigestChallengeFromSession();
         if (aborted) {
           const error = new Error("Aborted");
           error.code = "aborted";
@@ -498,7 +544,10 @@ export class WebDavClient {
         }
         if (result.status === 401 && attempt === 0 && this.auth.canUseDigest()) {
           const www = result.xhr?.getResponseHeader?.("www-authenticate") || "";
-          this.auth.observeUnauthorized({ headers: { get: () => www } });
+          const parsed = this.auth.observeUnauthorized({ headers: { get: () => www } });
+          if (parsed) {
+            await saveDigestSeed(this.endpoint, this.username, parsed);
+          }
           const digestAuth = await this.auth.getDigestAuthorization("PUT", safeUrl, blob);
           if (digestAuth) {
             return await sendAttempt(1);
@@ -552,6 +601,7 @@ export class WebDavClient {
   }
 
   async _fetchWithAuth(url, init = {}) {
+    await this._seedDigestChallengeFromSession();
     const method = init.method || "GET";
     const body = init.body;
     const headers = { ...(init.headers || {}) };
@@ -573,6 +623,7 @@ export class WebDavClient {
     if (!parsed) {
       return response;
     }
+    await saveDigestSeed(this.endpoint, this.username, parsed);
     if (!this.auth.isBodyRetryable(body)) {
       return response;
     }
@@ -589,6 +640,19 @@ export class WebDavClient {
     return await fetch(url, { ...init, headers: retryHeaders });
   }
 
+  async _seedDigestChallengeFromSession() {
+    if (!this.auth?.canUseDigest?.() || this.auth.hasDigestChallenge()) {
+      return;
+    }
+    const seed = await loadDigestSeed(this.endpoint, this.username);
+    if (!seed) {
+      return;
+    }
+    try {
+      this.auth.seedDigestChallenge(seed);
+    } catch {}
+  }
+
   async _ensureDigestChallengeForNonRetryableBody() {
     if (!this.auth?.canUseDigest?.() || this.auth.hasDigestChallenge()) {
       return;
@@ -598,28 +662,30 @@ export class WebDavClient {
     }
     const probeUrl = encodeUrlForRequest(this.buildUrl("/"));
     try {
-      const headResponse = await fetch(probeUrl, { method: "HEAD" });
-      if (headResponse.status === 401) {
-        this.auth.observeUnauthorized(headResponse);
-        if (this.auth.hasDigestChallenge()) {
-          return;
-        }
+      await this._fetchWithAuth(probeUrl, { method: "HEAD" });
+      if (this.auth.hasDigestChallenge()) {
+        return;
       }
-      const response = await fetch(probeUrl, { method: "PROPFIND", headers: { Depth: "0" } });
-      if (response.status === 401) {
-        this.auth.observeUnauthorized(response);
-      }
+      await this._fetchWithAuth(probeUrl, { method: "PROPFIND", headers: { Depth: "0" } });
     } catch {}
   }
 }
 
 export function parsePropfindResponse(xml, baseHref) {
+  const input = String(xml || "");
+  if (input.length > MAX_PROPFIND_XML_CHARS) {
+    const error = new Error("XML response too large");
+    error.code = "xml_too_large";
+    error.status = 0;
+    error.raw = "";
+    throw error;
+  }
   const responseRegex = /<(?:[A-Za-z_][\w.-]*:)?response\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?response>/gi;
   const responses = [];
-  let match = responseRegex.exec(xml);
+  let match = responseRegex.exec(input);
   while (match) {
     responses.push(match[1]);
-    match = responseRegex.exec(xml);
+    match = responseRegex.exec(input);
   }
   if (responses.length === 0) {
     return [];
@@ -696,14 +762,62 @@ function resolveHrefPreserveEncoding(href, baseUrl) {
 }
 
 function extractTagRaw(xml, tag) {
+  const input = String(xml || "");
+  if (input.length > MAX_XML_FRAGMENT_CHARS) {
+    logDebug("webdav.xml_fragment_too_large", { tag, length: input.length });
+    return "";
+  }
+  if (typeof DOMParser === "function") {
+    try {
+      const doc = new DOMParser().parseFromString(`<root>${input}</root>`, "application/xml");
+      if (!doc.getElementsByTagName("parsererror").length) {
+        const all = doc.getElementsByTagName("*");
+        let found = null;
+        for (let i = 0; i < all.length; i += 1) {
+          const el = all[i];
+          if (String(el.localName || "").toLowerCase() === String(tag || "").toLowerCase()) {
+            found = el;
+            break;
+          }
+        }
+        if (found) {
+          const serializer = new XMLSerializer();
+          let raw = "";
+          for (let i = 0; i < found.childNodes.length; i += 1) {
+            raw += serializer.serializeToString(found.childNodes[i]);
+          }
+          return String(raw || "").trim();
+        }
+      }
+    } catch {}
+  }
   const ns = "(?:[A-Za-z_][\\w.-]*:)?";
   const regex = new RegExp(`<\\s*${ns}${tag}\\b[^>]*>([\\s\\S]*?)<\\/\\s*${ns}${tag}\\s*>`, "i");
-  const match = xml.match(regex);
+  const match = input.match(regex);
   return match ? match[1].trim() : "";
 }
 
 function extractTagText(xml, tag) {
-  return decodeXmlEntities(extractTagRaw(xml, tag));
+  const input = String(xml || "");
+  if (input.length > MAX_XML_FRAGMENT_CHARS) {
+    logDebug("webdav.xml_fragment_too_large", { tag, length: input.length });
+    return "";
+  }
+  if (typeof DOMParser === "function") {
+    try {
+      const doc = new DOMParser().parseFromString(`<root>${input}</root>`, "application/xml");
+      if (!doc.getElementsByTagName("parsererror").length) {
+        const all = doc.getElementsByTagName("*");
+        for (let i = 0; i < all.length; i += 1) {
+          const el = all[i];
+          if (String(el.localName || "").toLowerCase() === String(tag || "").toLowerCase()) {
+            return decodeXmlEntities(String(el.textContent || "").trim());
+          }
+        }
+      }
+    } catch {}
+  }
+  return decodeXmlEntities(extractTagRaw(input, tag));
 }
 
 function normalizeHrefForCompare(href) {

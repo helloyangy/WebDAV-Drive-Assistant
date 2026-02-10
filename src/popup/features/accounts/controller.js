@@ -1,3 +1,5 @@
+import { normalizeIntervalMinutes } from "../../../utils.js";
+
 export function createAccountsController(options) {
   const {
     storage,
@@ -62,7 +64,7 @@ export function createAccountsController(options) {
     concurrencyInput.value = account?.concurrency ?? base.concurrency ?? 2;
     cacheLimitInput.value = account?.cacheLimitMb ?? base.cacheLimitMb ?? 200;
     autoSyncInput.checked = Boolean(account?.autoSync ?? base.autoSync);
-    syncIntervalInput.value = account?.syncIntervalMinutes ?? base.syncIntervalMinutes ?? 30;
+    syncIntervalInput.value = normalizeIntervalMinutes(account?.syncIntervalMinutes ?? base.syncIntervalMinutes ?? 30, 30);
     pathInput.value = account?.rootPath || "/";
   }
 
@@ -79,7 +81,7 @@ export function createAccountsController(options) {
       concurrency: Number(concurrencyInput.value || base.concurrency || 2),
       cacheLimitMb: Number(cacheLimitInput.value || base.cacheLimitMb || 200),
       autoSync: autoSyncInput.checked,
-      syncIntervalMinutes: Number(syncIntervalInput.value || base.syncIntervalMinutes || 30)
+      syncIntervalMinutes: normalizeIntervalMinutes(syncIntervalInput.value, base.syncIntervalMinutes ?? 30)
     };
   }
 

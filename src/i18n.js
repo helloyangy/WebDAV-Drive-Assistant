@@ -91,6 +91,12 @@ const MESSAGES = {
     "ui.openMode.popup": "弹窗",
     "ui.openMode.tab": "标签页",
     "ui.language": "语言",
+    "ui.logLevel": "日志级别",
+    "ui.logLevel.off": "关闭",
+    "ui.logLevel.error": "仅错误",
+    "ui.logLevel.warn": "警告",
+    "ui.logLevel.info": "信息",
+    "ui.logLevel.debug": "调试",
     "ui.sortDefault": "默认排序",
     "ui.sortBy": "默认排序字段",
     "ui.sortBy.name": "名称",
@@ -268,6 +274,12 @@ const MESSAGES = {
     "ui.openMode.popup": "Popup",
     "ui.openMode.tab": "Tab",
     "ui.language": "Language",
+    "ui.logLevel": "Log level",
+    "ui.logLevel.off": "Off",
+    "ui.logLevel.error": "Errors only",
+    "ui.logLevel.warn": "Warnings",
+    "ui.logLevel.info": "Info",
+    "ui.logLevel.debug": "Debug",
     "ui.sortDefault": "Default sort",
     "ui.sortBy": "Sort field",
     "ui.sortBy.name": "Name",
@@ -428,5 +440,18 @@ export function applyI18n(root, i18n) {
 
 export function getSupportedLanguages() {
   return [...SUPPORTED_LANGUAGES];
+}
+
+export function getMessageMap(language) {
+  const lang = normalizeLanguage(language);
+  return { ...(MESSAGES[lang] || MESSAGES["zh-CN"]) };
+}
+
+export function getMessageKeys(language) {
+  return Object.keys(getMessageMap(language));
+}
+
+export function getAllMessages() {
+  return Object.fromEntries(SUPPORTED_LANGUAGES.map((lang) => [lang, getMessageMap(lang)]));
 }
 
