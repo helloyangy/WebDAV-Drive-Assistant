@@ -31,6 +31,12 @@ function main() {
 
   const beforeContentMatches = uniqSorted(contentScripts[contentIndex].matches);
   contentScripts[contentIndex].matches = matches;
+
+  const mainHookIndex = contentScripts.findIndex((item) => Array.isArray(item?.js) && item.js.includes("content/aiBackupMainHook.js"));
+  if (mainHookIndex >= 0) {
+    contentScripts[mainHookIndex].matches = matches;
+  }
+
   manifest.content_scripts = contentScripts;
 
   const wars = Array.isArray(manifest.web_accessible_resources) ? manifest.web_accessible_resources : [];
@@ -44,7 +50,14 @@ function main() {
   manifest.web_accessible_resources = wars;
 
   const afterContentMatches = uniqSorted(manifest.content_scripts[contentIndex].matches);
-  const same = stableStringify(beforeContentMatches) === stableStringify(afterContentMatches);
+  let same = stableStringify(beforeContentMatches) === stableStringify(afterContentMatches);
+
+  if (mainHookIndex >= 0) {
+    const mainHookMatches = uniqSorted(manifest.content_scripts[mainHookIndex].matches);
+    if (stableStringify(mainHookMatches) !== stableStringify(afterContentMatches)) {
+      same = false;
+    }
+  }
 
   if (checkOnly) {
     if (!same) {

@@ -7,6 +7,8 @@ export const AI_BACKUP_MATCHES = [
   "https://x.ai/*",
   "https://*.x.ai/*",
   "https://x.com/*",
+  "https://grok.com/*",
+  "https://*.grok.com/*",
   "https://doubao.com/*",
   "https://*.doubao.com/*",
   "https://www.doubao.com/*",

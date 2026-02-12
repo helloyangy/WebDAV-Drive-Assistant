@@ -117,8 +117,8 @@ export function createConnectionController(options) {
 
   function handleAddAccountClick() {
     const defaultName = `账号 ${accountsController.getAccounts().length + 1}`;
-    nameInput.value = defaultName;
     openModal(t?.("ui.accountModal.add") || "新增账号");
+    nameInput.value = defaultName;
     setStatus(t?.("status.fillConnectionInfo") || "请填写连接信息");
   }
 

@@ -30,7 +30,11 @@ export class SyncEngine {
   }
 
   emit(type, payload) {
-    for (const callback of this.listeners[type]) {
+    const callbacks = this.listeners[type];
+    if (!callbacks) {
+      return;
+    }
+    for (const callback of callbacks) {
       callback(payload);
     }
   }

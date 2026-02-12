@@ -98,7 +98,7 @@ export async function ensureWebDavDir(client, path) {
       await client.mkcol(current);
     } catch (error) {
       const status = error?.status || 0;
-      if (status === 405 || status === 409) {
+      if (status === 405 || status === 409 || status === 423) {
         continue;
       }
       if (error && typeof error === "object") {

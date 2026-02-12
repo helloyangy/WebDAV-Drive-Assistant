@@ -756,7 +756,7 @@ function resolveHrefPreserveEncoding(href, baseUrl) {
     return `${baseUrl.origin}${raw}`;
   }
   const basePath = baseUrl.pathname || "/";
-  const dir = basePath.endsWith("/") ? basePath : `${basePath.slice(0, basePath.lastIndexOf("/") + 1) || "/"}`
+  const dir = basePath.endsWith("/") ? basePath : `${basePath.slice(0, basePath.lastIndexOf("/") + 1) || "/"}`;
   const joined = `${dir}${raw}`.replace(/\/{2,}/g, "/");
   return `${baseUrl.origin}${joined}`;
 }

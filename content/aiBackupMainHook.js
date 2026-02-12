@@ -498,5 +498,25 @@
       };
     }
   } catch {}
+
+  try {
+    const originalClick = HTMLInputElement.prototype.click;
+    if (typeof originalClick === "function") {
+      HTMLInputElement.prototype.click = function (...args) {
+        try {
+          if (this.type === "file") {
+            this.addEventListener("change", function handler() {
+              this.removeEventListener("change", handler);
+              const files = Array.from(this.files || []);
+              for (const file of files) {
+                capture(file, "input", "");
+              }
+            }, { once: true });
+          }
+        } catch {}
+        return originalClick.apply(this, args);
+      };
+    }
+  } catch {}
 })();
 

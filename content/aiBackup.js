@@ -4,6 +4,24 @@
   const PROMPT_ID = "webdav-ai-backup-prompt";
   const TOAST_ID = "webdav-ai-backup-toast";
 
+  const recentUploads = new Map();
+  const DEDUP_TTL_MS = 5000;
+
+  function makeDeduplicationKey(file) {
+    return `${file.name}|${file.size}|${file.lastModified || 0}`;
+  }
+
+  function isDuplicate(file) {
+    const key = makeDeduplicationKey(file);
+    const now = Date.now();
+    for (const [k, ts] of recentUploads) {
+      if (now - ts > DEDUP_TTL_MS) recentUploads.delete(k);
+    }
+    if (recentUploads.has(key)) return true;
+    recentUploads.set(key, now);
+    return false;
+  }
+
   function normalizeSettings(settings) {
     const base = settings || {};
     const mode = base.mode === "auto" || base.mode === "ask" ? base.mode : "off";
@@ -26,7 +44,7 @@
     if (host === "chat.openai.com" || host === "chatgpt.com") return "chatgpt";
     if (host === "gemini.google.com") return "gemini";
     if (host === "claude.ai" || host.endsWith(".claude.ai")) return "claude";
-    if (host === "x.ai" || host.endsWith(".x.ai") || host === "x.com") return "grok";
+    if (host === "x.ai" || host.endsWith(".x.ai") || host === "x.com" || host === "grok.com" || host.endsWith(".grok.com")) return "grok";
     if (host === "doubao.com" || host.endsWith(".doubao.com") || host === "www.doubao.com") return "doubao";
     if (host === "chat.deepseek.com" || host.endsWith(".deepseek.com")) return "deepseek";
     if (host === "kimi.com" || host === "www.kimi.com" || host.endsWith(".kimi.com")) return "kimi";
@@ -260,6 +278,7 @@
         showToast(`AI 备份：已跳过 ${file.name}`);
         continue;
       }
+      if (isDuplicate(file)) continue;
       if (settings.mode === "ask") {
         await new Promise((resolve) => {
           showPrompt(file.name, async () => {

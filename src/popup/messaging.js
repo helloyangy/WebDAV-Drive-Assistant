@@ -6,7 +6,7 @@ export function sendMessage(message) {
       if (chrome.runtime.lastError) {
         logWarn("popup.sendMessage_runtime_error", { type: message?.type, message: chrome.runtime.lastError.message });
         reject({
-          message: chrome.runtime.lastError.message,
+          message: chrome.runtime.lastError.message || "Runtime error",
           status: 0,
           raw: ""
         });
@@ -17,7 +17,8 @@ export function sendMessage(message) {
         reject({
           message: response?.error || "操作失败",
           status: response?.status || 0,
-          raw: response?.raw || ""
+          raw: response?.raw || "",
+          toString() { return this.message; }
         });
         return;
       }

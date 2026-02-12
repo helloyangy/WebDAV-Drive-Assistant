@@ -7,18 +7,17 @@ const nameText = document.getElementById("nameText");
 const fileInput = document.getElementById("fileInput");
 const uploadBtn = document.getElementById("uploadBtn");
 const abortBtn = document.getElementById("abortBtn");
-const closeBtn = document.getElementById("closeBtn");
 const bar = document.getElementById("bar");
+const progressArea = document.getElementById("progressArea");
 const progressText = document.getElementById("progressText");
-const totalText = document.getElementById("totalText");
-const loadedText = document.getElementById("loadedText");
 const speedText = document.getElementById("speedText");
 const status = document.getElementById("status");
+const filePicker = document.getElementById("filePicker");
+const filePickerText = document.getElementById("filePickerText");
 
 const params = new URLSearchParams(location.search);
 const site = String(params.get("site") || "").toLowerCase();
 const originalName = String(params.get("name") || "");
-const originalSize = Number(params.get("size") || 0);
 const preferredAccountId = String(params.get("account") || "");
 
 function sanitizeFilename(name) {
@@ -69,7 +68,7 @@ let speedBps = 0;
 function setProgress(percent) {
   const clamped = Math.max(0, Math.min(100, Number(percent) || 0));
   bar.style.width = `${clamped}%`;
-  progressText.textContent = clamped ? `上传中... ${Math.round(clamped)}%` : "";
+  progressText.textContent = clamped ? `${Math.round(clamped)}%` : "";
 }
 
 function setStatus(text) {
@@ -78,22 +77,23 @@ function setStatus(text) {
 
 function resetUi() {
   setProgress(0);
-  totalText.textContent = "";
-  loadedText.textContent = "";
   speedText.textContent = "";
+  progressArea.hidden = true;
   abortBtn.disabled = true;
+  abortBtn.hidden = true;
   uploadBtn.disabled = !fileInput.files?.[0];
 }
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
   if (!file) {
+    filePickerText.textContent = "点击选择文件";
+    filePicker.classList.remove("has-file");
     resetUi();
     return;
   }
-  totalText.textContent = formatSize(file.size || 0);
-  loadedText.textContent = formatSize(0);
-  speedText.textContent = "-";
+  filePickerText.textContent = file.name;
+  filePicker.classList.add("has-file");
   uploadBtn.disabled = false;
 });
 
@@ -104,25 +104,18 @@ abortBtn.addEventListener("click", () => {
   }
 });
 
-closeBtn.addEventListener("click", () => {
-  window.close();
-});
-
 uploadBtn.addEventListener("click", async () => {
   const file = fileInput.files?.[0];
-  if (!file) {
-    return;
-  }
+  if (!file) return;
   if (!site) {
     setStatus("缺少站点参数");
     return;
   }
   if (activeTask?.abort) {
-    try {
-      activeTask.abort();
-    } catch {}
+    try { activeTask.abort(); } catch {}
   }
   resetUi();
+  progressArea.hidden = false;
   setStatus("准备上传...");
   uploadBtn.disabled = true;
   try {
@@ -138,6 +131,7 @@ uploadBtn.addEventListener("click", async () => {
     lastTs = performance.now();
     speedBps = 0;
     abortBtn.disabled = false;
+    abortBtn.hidden = false;
     activeTask = client.createPutTask(target.path, file, {
       onProgress: ({ loaded, total, percent }) => {
         const now = performance.now();
@@ -148,24 +142,22 @@ uploadBtn.addEventListener("click", async () => {
         lastLoaded = Number(loaded || 0) || 0;
         lastTs = now;
         setProgress(percent);
-        loadedText.textContent = formatSize(lastLoaded);
-        speedText.textContent = speedBps ? `${formatSize(speedBps)}/s` : "-";
+        speedText.textContent = speedBps ? `${formatSize(speedBps)}/s` : "";
       }
     });
     await activeTask.promise;
     setProgress(100);
-    setStatus(`上传完成：${target.path}`);
+    setStatus("上传完成");
   } catch (error) {
     setStatus(`上传失败：${error?.status ? `${error.status} ` : ""}${error?.message || String(error)}`);
   } finally {
     abortBtn.disabled = true;
+    abortBtn.hidden = true;
     uploadBtn.disabled = false;
     activeTask = null;
   }
 });
 
 siteText.textContent = site || "-";
-nameText.textContent = originalName ? `${originalName}${originalSize ? ` (${formatSize(originalSize)})` : ""}` : "-";
+nameText.textContent = originalName || "-";
 resetUi();
-
-

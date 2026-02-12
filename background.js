@@ -226,8 +226,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await chrome.windows.create({
           url,
           type: "popup",
-          width: 560,
-          height: 620,
+          width: 360,
+          height: 300,
           focused: true
         });
         sendResponse({ ok: true });
@@ -561,6 +561,9 @@ chrome.runtime.onConnect.addListener((port) => {
           Promise.resolve()
             .then(async () => {
               const targetClient = aiClient || client;
+              if (!targetClient) {
+                throw new Error("No WebDAV client available");
+              }
               await targetClient.put(targetPath, blob);
               port.postMessage({ type: "progress", loaded: totalBytes || blob.size || bytesReceived, total: totalBytes || blob.size || bytesReceived, percent: 100 });
             })
@@ -621,4 +624,4 @@ async function scheduleAutoSync() {
   });
 }
 
-scheduleAutoSync();
+scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_startup_failed", err));

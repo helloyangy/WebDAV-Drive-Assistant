@@ -1,62 +1,43 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI 备份</title>
+    <title>AI 备份上传</title>
     <link rel="stylesheet" href="aiBackupAssist.css" />
   </head>
   <body>
-    <div class="wrap">
-      <header class="header">
-        <div class="title">AI 备份上传</div>
-        <button id="closeBtn" class="ghost" type="button">关闭</button>
-      </header>
-      <div class="card">
-        <div class="row">
-          <div class="label">站点</div>
-          <div id="siteText" class="value"></div>
+    <div class="container">
+      <div class="info">
+        <div class="info-row">
+          <span class="info-label">站点</span>
+          <span id="siteText" class="info-value"></span>
         </div>
-        <div class="row">
-          <div class="label">文件名</div>
-          <div id="nameText" class="value"></div>
+        <div class="info-row">
+          <span class="info-label">文件</span>
+          <span id="nameText" class="info-value"></span>
         </div>
-        <div class="row">
-          <div class="label">选择文件</div>
-          <input id="fileInput" type="file" />
-        </div>
-        <div class="progress">
-          <div class="track" aria-hidden="true">
-            <div id="bar" class="bar"></div>
-          </div>
-          <div id="progressText" class="progress-text"></div>
-        </div>
-        <div class="stats">
-          <div class="stat">
-            <div class="k">总大小</div>
-            <div id="totalText" class="v"></div>
-          </div>
-          <div class="stat">
-            <div class="k">已上传</div>
-            <div id="loadedText" class="v"></div>
-          </div>
-          <div class="stat">
-            <div class="k">网速</div>
-            <div id="speedText" class="v"></div>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="abortBtn" class="ghost" type="button" disabled>终止上传</button>
-          <button id="uploadBtn" class="primary" type="button" disabled>开始上传</button>
-        </div>
-        <div id="status" class="status"></div>
       </div>
-      <div class="hint">
-        说明：由于浏览器限制，部分 AI 网站无法自动读取文件内容。此窗口用于手动选择同一个文件并上传到网盘备份目录。
+      <label id="filePicker" class="file-picker">
+        <span id="filePickerText">点击选择文件</span>
+        <input id="fileInput" type="file" />
+      </label>
+      <div class="progress-area" id="progressArea" hidden>
+        <div class="progress-track">
+          <div id="bar" class="progress-bar"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="progressText" class="progress-text"></span>
+          <span id="speedText" class="progress-speed"></span>
+        </div>
       </div>
+      <div class="actions">
+        <button id="abortBtn" class="btn" type="button" disabled hidden>终止</button>
+        <button id="uploadBtn" class="btn primary" type="button" disabled>开始上传</button>
+      </div>
+      <div id="status" class="status"></div>
     </div>
+    <button id="closeBtn" hidden></button>
     <script type="module" src="aiBackupAssist.js"></script>
   </body>
 </html>
-
-
