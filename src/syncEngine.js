@@ -1,4 +1,5 @@
 import { getMeta, listMeta, setMeta } from "./cache.js";
+import { logWarn } from "./logger.js";
 
 export class SyncEngine {
   constructor(client, options) {
@@ -84,6 +85,7 @@ export class SyncEngine {
       }
       return;
     }
+    logWarn("syncEngine.unknown_task_type", { type: task?.type });
   }
 
   async diff(path) {

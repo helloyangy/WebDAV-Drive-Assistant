@@ -486,7 +486,7 @@ export class WebDavClient {
       }
     });
     const total = Number(blob?.size || 0) || 0;
-    let activeXhr = null;
+    const activeXhrs = [];
     let aborted = false;
     const promise = new Promise((resolve, reject) => {
       const sendAttempt = async (attempt) => {
@@ -499,7 +499,7 @@ export class WebDavClient {
           throw error;
         }
         const xhr = new XMLHttpRequest();
-        activeXhr = xhr;
+        activeXhrs.push(xhr);
         xhr.open("PUT", safeUrl, true);
         const headers = { ...mergedHeaders, ...(options?.headers || {}) };
         Object.keys(headers).forEach((key) => {
@@ -540,6 +540,7 @@ export class WebDavClient {
           xhr.send(blob);
         });
         if (result.status >= 200 && result.status < 300) {
+          activeXhrs.length = 0;
           return;
         }
         if (result.status === 401 && attempt === 0 && this.auth.canUseDigest()) {
@@ -564,9 +565,11 @@ export class WebDavClient {
       promise,
       abort: () => {
         aborted = true;
-        try {
-          activeXhr?.abort();
-        } catch {}
+        for (const xhr of activeXhrs) {
+          try {
+            xhr.abort();
+          } catch {}
+        }
       }
     };
   }

@@ -52,6 +52,16 @@
 3. 点击“加载已解压的扩展程序”，选择本项目根目录（包含 `manifest.json`）
 4. 打开扩展页面，配置 WebDAV 账号信息并连接
 
+插件商店安装：
+
+<a href="https://microsoftedge.microsoft.com/addons/detail/webdav-%E4%BA%91%E7%9B%98%E5%8A%A9%E6%89%8B/bmppeobhahgpjoaoemlfefhgnkncfeok" title="Microsoft Edge 插件">
+  <img src="assets/edge.png" width="50" alt="Microsoft Edge" />
+</a>
+&nbsp;
+<a href="https://addons.mozilla.org/zh-CN/firefox/addon/webdav-drive-assistant/" title="Firefox 插件">
+  <img src="assets/firefox.png" width="50" alt="Firefox" />
+</a>
+
 ### 🚀 使用
 
 #### 📁 WebDAV 文件管理
@@ -115,6 +125,16 @@ AI Backups
 2. Enable “Developer mode”
 3. Click “Load unpacked” and select the repository root (where `manifest.json` is)
 4. Open the extension UI and configure your WebDAV account, then connect
+
+Install from stores:
+
+<a href="https://microsoftedge.microsoft.com/addons/detail/webdav-%E4%BA%91%E7%9B%98%E5%8A%A9%E6%89%8B/bmppeobhahgpjoaoemlfefhgnkncfeok" title="Microsoft Edge Add-on">
+  <img src="assets/edge.png" width="50" alt="Microsoft Edge" />
+</a>
+&nbsp;
+<a href="https://addons.mozilla.org/zh-CN/firefox/addon/webdav-drive-assistant/" title="Firefox Add-on">
+  <img src="assets/firefox.png" width="50" alt="Firefox" />
+</a>
 
 ### 🚀 Usage
 

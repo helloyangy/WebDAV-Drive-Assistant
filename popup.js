@@ -94,6 +94,7 @@ const closeAiBackupBtn = document.getElementById("closeAiBackupBtn");
 const aiBackupForm = document.getElementById("aiBackupForm");
 const aiBackupDriveSelect = document.getElementById("aiBackupDriveSelect");
 const aiBackupBlockedTypes = document.getElementById("aiBackupBlockedTypes");
+const aiBackupCustomFolder = document.getElementById("aiBackupCustomFolder");
 const aiBackupCancelBtn = document.getElementById("aiBackupCancelBtn");
 const blockSiteChatgpt = document.getElementById("blockSiteChatgpt");
 const blockSiteGemini = document.getElementById("blockSiteGemini");
@@ -312,6 +313,7 @@ const aiBackupController = createAiBackupController({
   form: aiBackupForm,
   modalController: aiBackupModalController,
   blockedTypesInput: aiBackupBlockedTypes,
+  customFolderInput: aiBackupCustomFolder,
   driveSelect: aiBackupDriveSelect,
   siteCheckboxes: {
     chatgpt: blockSiteChatgpt,

@@ -1072,25 +1072,25 @@ select {
 }
 
 .ai-backup-card {
-  width: 640px;
+  width: 560px;
   max-width: calc(100% - 32px);
 }
 
 .ai-backup-form {
-  gap: 14px;
+  gap: 12px;
 }
 
 .ai-backup-section {
   background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ai-backup-label {
   font-size: 12px;
-  font-weight: 600;
-  color: rgba(17, 24, 39, 0.86);
+  font-weight: 500;
+  color: #333;
 }
 
 .ai-backup-help {

@@ -88,6 +88,29 @@ export function normalizeIntervalMinutes(value, fallback = 30, min = 1, max = 72
   return rounded;
 }
 
+export function sanitizeFilename(name) {
+  return String(name || "file")
+    .replace(/[\\\/:*?"<>|\u0000-\u001F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function buildAiBackupPath(site, filename, customFolder) {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const stamp = now
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .replace("Z", "");
+  const safe = sanitizeFilename(filename);
+  const root = customFolder || "/AI-Backups";
+  return {
+    dir: `${root}/${site}/${date}/`,
+    path: `${root}/${site}/${date}/${stamp}_${safe}`
+  };
+}
+
 export async function ensureWebDavDir(client, path) {
   const normalized = normalizePath(String(path || "/"));
   const parts = normalized.split("/").filter(Boolean);

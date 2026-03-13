@@ -6,6 +6,7 @@ export function createAiBackupController(options) {
     form,
     modalController,
     blockedTypesInput,
+    customFolderInput,
     driveSelect,
     siteCheckboxes,
     loadSettings,
@@ -64,6 +65,9 @@ export function createAiBackupController(options) {
       const list = Array.isArray(base.blockedExtensions) ? base.blockedExtensions : [];
       blockedTypesInput.value = list.join(", ");
     }
+    if (customFolderInput) {
+      customFolderInput.value = base.customFolder || "";
+    }
     const blockedSites = new Set((Array.isArray(base.blockedSites) ? base.blockedSites : []).map((v) => String(v || "").toLowerCase()));
     for (const [site, el] of Object.entries(siteCheckboxes || {})) {
       if (el) {
@@ -81,11 +85,13 @@ export function createAiBackupController(options) {
       }
     }
     const backupAccountId = String(driveSelect?.value || "").trim();
+    const customFolder = String(customFolderInput?.value || "").trim();
     return {
       mode: getModeFromForm(),
       blockedExtensions: [...new Set(blockedExtensions)],
       blockedSites: [...new Set(blockedSites)],
-      backupAccountId
+      backupAccountId,
+      customFolder
     };
   }
 

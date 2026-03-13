@@ -1,6 +1,6 @@
-﻿import { loadSettings, loadAccounts, loadActiveAccountId } from "./src/storage.js";
+﻿import { loadSettings, loadAccounts, loadActiveAccountId, loadAiBackupSettings } from "./src/storage.js";
 import { WebDavClient } from "./src/webdavClient.js";
-import { normalizePath, formatSize, ensureWebDavDir } from "./src/utils.js";
+import { normalizePath, formatSize, ensureWebDavDir, buildAiBackupPath } from "./src/utils.js";
 
 const siteText = document.getElementById("siteText");
 const nameText = document.getElementById("nameText");
@@ -20,32 +20,12 @@ const site = String(params.get("site") || "").toLowerCase();
 const originalName = String(params.get("name") || "");
 const preferredAccountId = String(params.get("account") || "");
 
-function sanitizeFilename(name) {
-  return String(name || "file")
-    .replace(/[\\\/:*?"<>|\u0000-\u001F]/g, "_")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function buildAiBackupPath(siteKey, filename) {
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10);
-  const stamp = now
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .replace("Z", "");
-  const safe = sanitizeFilename(filename);
-  return {
-    dir: `/AI-Backups/${siteKey}/${date}/`,
-    path: `/AI-Backups/${siteKey}/${date}/${stamp}_${safe}`
-  };
-}
-
 async function createClientFromAccountId(accountId) {
-  const settings = await loadSettings();
-  const accounts = await loadAccounts();
-  const activeId = await loadActiveAccountId();
+  const [settings, accounts, activeId] = await Promise.all([
+    loadSettings(),
+    loadAccounts(),
+    loadActiveAccountId()
+  ]);
   const normalized = String(accountId || "").trim();
   const picked = normalized && accounts.some((a) => a.id === normalized) ? normalized : activeId;
   const active = accounts.find((a) => a.id === picked) || {};
@@ -125,7 +105,8 @@ uploadBtn.addEventListener("click", async () => {
       uploadBtn.disabled = false;
       return;
     }
-    const target = buildAiBackupPath(site, file.name || originalName || "file");
+    const aiSettings = await loadAiBackupSettings();
+    const target = buildAiBackupPath(site, file.name || originalName || "file", aiSettings?.customFolder);
     await ensureWebDavDir(client, normalizePath(target.dir));
     lastLoaded = 0;
     lastTs = performance.now();

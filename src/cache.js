@@ -148,13 +148,20 @@ export async function pruneCache(limitBytes) {
     const store = tx.objectStore(BLOB_STORE);
     const source = store.indexNames.contains("updatedAt") ? store.index("updatedAt") : store;
     let remaining = total;
+    let stopped = false;
     const request = source.openCursor(null, "next");
     request.onsuccess = () => {
       const cursor = request.result;
       if (!cursor) {
         return;
       }
+      if (stopped) {
+        cursor.continue();
+        return;
+      }
       if (remaining <= limitBytes) {
+        stopped = true;
+        cursor.continue();
         return;
       }
       const entry = cursor.value || {};

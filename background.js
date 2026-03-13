@@ -11,7 +11,7 @@ import {
 } from "./src/storage.js";
 import { getBlob, setBlob, pruneCache, clearCache } from "./src/cache.js";
 import { SyncEngine } from "./src/syncEngine.js";
-import { ensureWebDavDir, normalizeIntervalMinutes } from "./src/utils.js";
+import { ensureWebDavDir, normalizeIntervalMinutes, sanitizeFilename, buildAiBackupPath } from "./src/utils.js";
 import { setLogLevel, logError } from "./src/logger.js";
 
 let settings = null;
@@ -109,8 +109,12 @@ function getClientForAiBackup(accountId) {
 
 function updateConfig() {
   currentConfig = buildConfig();
-  client.updateConfig(currentConfig);
-  sync.options.concurrency = currentConfig.concurrency;
+  if (client) {
+    client.updateConfig(currentConfig);
+  }
+  if (sync) {
+    sync.options.concurrency = currentConfig.concurrency;
+  }
   aiBackupClientCache.clear();
   scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_failed", err));
 }
@@ -147,6 +151,7 @@ async function init() {
         activeAccountId = next;
         updateConfig();
       });
+      scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_failed", err));
     })
     .catch((error) => {
       initPromise = null;
@@ -172,6 +177,13 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  let responded = false;
+  const safeSendResponse = (response) => {
+    if (responded) return;
+    responded = true;
+    sendResponse(response);
+  };
+
   ensureInit()
     .then(async () => {
       if (message.type === "aiBackupUploadBase64") {
@@ -181,15 +193,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const normalized = normalizeAiBackupSettings(aiBackupSettings);
         const ext = getFileExtension(fileName);
         if (normalized.mode === "off" || !site) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         if (normalized.blockedSites.includes(site)) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         if (ext && normalized.blockedExtensions.includes(ext)) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         const m = /^data:([^;]*);base64,(.+)$/i.exec(dataUrl);
@@ -205,11 +217,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         const accountId = resolveAiBackupAccountId();
         const aiClient = getClientForAiBackup(accountId);
-        const target = buildAiBackupPath(site, fileName);
+        const target = buildAiBackupPath(site, fileName, aiBackupSettings?.customFolder);
         await ensureWebDavDir(aiClient, target.dir);
         const blob = new Blob([bytes], { type: mime });
         await aiClient.put(target.path, blob);
-        sendResponse({ ok: true, skipped: false, path: target.path, size: blob.size });
+        safeSendResponse({ ok: true, skipped: false, path: target.path, size: blob.size });
         return;
       }
 
@@ -230,7 +242,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           height: 300,
           focused: true
         });
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
 
@@ -256,29 +268,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const normalized = normalizeAiBackupSettings(aiBackupSettings);
         const ext = getFileExtension(fileName);
         if (normalized.mode === "off" || !site) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         if (normalized.blockedSites.includes(site)) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         if (ext && normalized.blockedExtensions.includes(ext)) {
-          sendResponse({ ok: true, skipped: true });
+          safeSendResponse({ ok: true, skipped: true });
           return;
         }
         const accountId = resolveAiBackupAccountId();
         const aiClient = getClientForAiBackup(accountId);
-        const target = buildAiBackupPath(site, fileName);
+        const target = buildAiBackupPath(site, fileName, aiBackupSettings?.customFolder);
         await ensureWebDavDir(aiClient, target.dir);
         const blob = new Blob([bytes], { type: mime });
         await aiClient.put(target.path, blob);
-        sendResponse({ ok: true, skipped: false, path: target.path, size: size || blob.size });
+        safeSendResponse({ ok: true, skipped: false, path: target.path, size: size || blob.size });
         return;
       }
       if (message.type === "list") {
         const items = await client.list(message.path);
-        sendResponse({ ok: true, items });
+        safeSendResponse({ ok: true, items });
         return;
       }
       if (message.type === "download") {
@@ -288,7 +300,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           await setBlob(message.path, blob);
         } catch {}
-        sendResponse({ ok: true, buffer, contentType });
+        safeSendResponse({ ok: true, buffer, contentType });
         return;
       }
       if (message.type === "upload") {
@@ -297,7 +309,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           throw new Error("Invalid upload payload");
         }
         await client.put(message.path, blob);
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "delete") {
@@ -306,50 +318,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else {
           await client.delete(message.path);
         }
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "mkdir") {
         await client.mkcol(message.path);
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "move") {
         await client.move(message.source, message.destination);
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "downloadCached") {
         const blob = await getBlob(message.path);
         if (!blob) {
-          sendResponse({ ok: false, error: "Cache miss", status: 0, raw: "" });
+          safeSendResponse({ ok: false, error: "Cache miss", status: 0, raw: "" });
           return;
         }
-        sendResponse({ ok: true, blob });
+        safeSendResponse({ ok: true, blob });
         return;
       }
       if (message.type === "sync") {
         sync.enqueue({ type: "list", path: message.path });
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "prune") {
         const limitBytes = currentConfig.cacheLimitMb * 1024 * 1024;
         await pruneCache(limitBytes);
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       if (message.type === "clearCache") {
         await clearCache();
-        sendResponse({ ok: true });
+        safeSendResponse({ ok: true });
         return;
       }
       const type = typeof message?.type === "string" ? message.type : "";
-      sendResponse({ ok: false, error: type ? `Unknown message: ${type}` : "Unknown message" });
+      safeSendResponse({ ok: false, error: type ? `Unknown message: ${type}` : "Unknown message" });
     })
     .catch((error) => {
       logError("background.onMessage_error", { type: message?.type, error });
-      sendResponse({
+      safeSendResponse({
         ok: false,
         error: error.message || String(error),
         status: error.status || 0,
@@ -371,13 +383,6 @@ function normalizeAiBackupSettings(settings) {
   };
 }
 
-function sanitizeFilename(name) {
-  return String(name || "file")
-    .replace(/[\\\/:*?"<>|\u0000-\u001F]/g, "_")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function getFileExtension(name) {
   const lower = String(name || "").toLowerCase();
   const idx = lower.lastIndexOf(".");
@@ -385,21 +390,6 @@ function getFileExtension(name) {
     return "";
   }
   return lower.slice(idx + 1);
-}
-
-function buildAiBackupPath(site, filename) {
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10);
-  const stamp = now
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .replace("Z", "");
-  const safe = sanitizeFilename(filename);
-  return {
-    dir: `/AI-Backups/${site}/${date}/`,
-    path: `/AI-Backups/${site}/${date}/${stamp}_${safe}`
-  };
 }
 
 chrome.runtime.onConnect.addListener((port) => {
@@ -506,7 +496,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
           const accountId = resolveAiBackupAccountId();
           aiClient = getClientForAiBackup(accountId);
-          const target = buildAiBackupPath(site, fileName);
+          const target = buildAiBackupPath(site, fileName, aiBackupSettings?.customFolder);
           await ensureWebDavDir(aiClient, target.dir);
           port.postMessage({ type: "ready", path: target.path });
           targetPath = target.path;
@@ -623,5 +613,3 @@ async function scheduleAutoSync() {
     periodInMinutes: interval
   });
 }
-
-scheduleAutoSync().catch((err) => logError("background.scheduleAutoSync_startup_failed", err));

@@ -98,11 +98,14 @@ export async function loadAiBackupSettings() {
   const blockedExtensions = Array.isArray(base.blockedExtensions) ? base.blockedExtensions : [];
   const blockedSites = Array.isArray(base.blockedSites) ? base.blockedSites : [];
   const backupAccountId = typeof base.backupAccountId === "string" ? base.backupAccountId : "";
+  const rawFolder = typeof base.customFolder === "string" ? base.customFolder.trim() : "";
+  const customFolder = rawFolder ? ("/" + rawFolder.replace(/^\/+/, "").replace(/\/+$/, "")) : "";
   return {
     mode,
-    blockedExtensions: blockedExtensions.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean),
+    blockedExtensions: blockedExtensions.map((v) => String(v || "").trim().toLowerCase().replace(/^\./, "")).filter(Boolean),
     blockedSites: blockedSites.map((v) => String(v || "").trim().toLowerCase()).filter(Boolean),
-    backupAccountId: backupAccountId.trim()
+    backupAccountId: backupAccountId.trim(),
+    customFolder
   };
 }
 

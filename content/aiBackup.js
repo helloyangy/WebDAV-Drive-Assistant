@@ -273,6 +273,9 @@
       showToast("AI 备份：该网站已被禁止备份");
       return;
     }
+
+    const uploadPromises = [];
+
     for (const file of list) {
       if (shouldSkipFile(file, settings, siteKey)) {
         showToast(`AI 备份：已跳过 ${file.name}`);
@@ -307,7 +310,7 @@
       }
       if (settings.mode === "auto") {
         showToast(`AI 备份开始：${file.name}`, 1400);
-        uploadToWebDav(file, siteKey)
+        const uploadPromise = uploadToWebDav(file, siteKey)
           .then((result) => {
             if (result?.ok && !result?.skipped) {
               showToast(`AI 备份完成：${file.name}`);
@@ -332,7 +335,12 @@
           .catch((error) => {
             showToast(`AI 备份失败：${file.name}：${error?.message || String(error)}`, 5200);
           });
+        uploadPromises.push(uploadPromise);
       }
+    }
+
+    if (uploadPromises.length > 0) {
+      await Promise.allSettled(uploadPromises);
     }
   }
 
